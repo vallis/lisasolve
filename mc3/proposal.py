@@ -9,9 +9,6 @@ class proposal(object):
     pass
 
 class Gaussian(proposal):
-    def __init__(self):
-        pass
-    
     def propose(self,current):
         proposed = state(current.model)
         
