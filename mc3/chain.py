@@ -1,5 +1,3 @@
-import math, copy
-
 class chain(object):
     def __init__(self,model,proposal,stepper,data,temperature=1.0):
         self.model    = model
@@ -12,27 +10,36 @@ class chain(object):
         self.state = None
         self.samples = []
     
+    def init(self):
+        self.state = self.model.initstate            
+        self.state.logL = self.data.logL(self.model.signal(self.state),self.state)
+    
+    def iterate(self,current,temperature):
+        newstate = self.proposal.propose(current)        
+        newstate.logL = self.data.logL(self.model.signal(newstate),newstate)
+        
+        return self.stepper.step(current,newstate,temperature)
+
+    def compute(self,state):
+        for par in self.model.computed:
+            if par not in state and hasattr(par,'compute'):
+                state[par] = par.compute(self.model.signal(state))
+    
+    def store(self,state):
+        pars =  [state[par] for par in self.model.saved]
+        pars += [state.prior, state.logL]
+        
+        return pars
+    
     def run(self,iterations):
         if len(self.samples) == 0:
-            self.state = self.model.initstate
-            self.state.logL = self.data.logL(self.model.signal(self.state),self.state)
-                
-        for iter in range(iterations):
-            newstate = self.proposal.propose(self.state)        
-            newstate.logL = self.data.logL(self.model.signal(newstate),newstate)
-            # should we cache the computation of the signal? It's called twice...
-            
-            self.state = self.stepper.step(self.state,newstate,self.temperature)
-            
-            for par in self.model.computed:
-                if par not in self.state and hasattr(par,'compute'):
-                    self.state[par] = par.compute(self.model.signal(self.state))
-            
-            pars =  [self.state[par] for par in self.model.saved]
-            pars += [self.state.prior, self.state.logL]
-            
-            self.samples.append(pars)
+            self.init()             # initialize from model.initstate
         
+        for iter in range(iterations):
+            self.state = self.iterate(self.state,self.temperature)  # advance the chain
+            self.compute(self.state)                                # compute derived parameters
+            self.samples.append(self.store(self.state))             # store desired parameters
+    
     def getpar(self,par):
         # see if we have stored the parameter...
         try:
