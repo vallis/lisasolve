@@ -4,15 +4,11 @@ class state(dict):
     def __init__(self,model):
         self.model = model
 
-    # it may be good to cache p and prior
-    
-    def getp(self):
-        return self.prior * math.exp(self.logL)
+    # it may be good to cache prior
     
     def getprior(self):
         return self.model.prior(self)
     
-    p = property(getp)
     prior = property(getprior)
     
     # the idea here is to use access parameters defined in model.extra    
