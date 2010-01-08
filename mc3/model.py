@@ -7,6 +7,16 @@ class parameter(str):
     def __new__(cls,value,*args,**kwargs):
         return str.__new__(cls,value)
     
+    def prior(self,value):
+        return 1.0
+    
+
+class computed(parameter):
+    def __init__(self,parname,compute):
+        parameter.__init__(parname)
+        
+        self.compute = compute
+    
 
 class uniform(parameter):
     def __init__(self,parname,xmin=None,xmax=None,periodic=False):
@@ -34,13 +44,18 @@ class uniform(parameter):
     
 
 class model(object):
-    def __init__(self,parameters,init,computed=[],**kwargs):
+    def __init__(self,parameters,init,computed=[],saved=None,**kwargs):
         self.parameters = parameters
         self.computed = computed
         
         self.initstate = state(self)
         for i,par in enumerate(parameters):
             self.initstate[par] = init[i]
+        
+        if saved != None:
+            self.saved = saved
+        else:
+            self.saved = self.parameters + self.computed
         
         self.extra = kwargs
     
