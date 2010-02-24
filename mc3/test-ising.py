@@ -39,26 +39,18 @@ myprop.propose = spinflip
 
 # MCMC
 
-mychain = mc3.tempering(model=mymodel,
-                        proposal=myprop,
-                        stepper=mc3.Metropolis(),
-                        data=mydata,
-                        temperature=[T,T*2,T*3,T*4],alpha=0.1)
+mychain = mc3.chain(model=mymodel,
+                    proposal=myprop,
+                    stepper=mc3.Metropolis(),
+                    data=mydata,
+                    temperature=T)
 
-# it would be best to suppress the storage of field configurations
 mychain.run(iterations=50000)
 
 import pylab
 
-# m = numpy.array(mychain.getpar('m'))
-# pylab.figure(1); pylab.hist(m,bins=50)
-# pylab.figure(2); pylab.plot(m)
+m = numpy.array(mychain.getpar('m'))
 
-for i in range(4):
-    pylab.figure(i)
-    pylab.plot(numpy.array(mychain.getpar('m',i)))
-
-pylab.figure(5); 
-pylab.hist(numpy.array(mychain.getpar('m')),bins=50)
-
+pylab.figure(1); pylab.hist(m,bins=50)
+pylab.figure(2); pylab.plot(m)
 pylab.show()

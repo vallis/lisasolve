@@ -14,6 +14,10 @@ mychain = mc3.chain(model=mymodel,
 
 mychain.run(iterations=30000)
 
+import pickle
+print mychain.state
+print pickle.dumps(mychain.state)
+
 import pylab
 
 pylab.figure(1); pylab.hist(mychain.getpar('x'),bins=50)

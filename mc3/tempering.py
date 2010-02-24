@@ -32,8 +32,7 @@ class tempering(mc3.chain):
                     self.states[i], self.states[i+1] = self.states[i+1], self.states[i]
                     swapped += 1
             else:
-                for i in range(self.N):
-                    self.states[i] = self.iterate(self.states[i],self.temperature[i])
+                self.states = self.iterate(self.states,self.temperature)
             
             for state in self.states:
                 self.compute(state)
@@ -41,6 +40,16 @@ class tempering(mc3.chain):
             self.samples.append(sum([self.store(state) for state in self.states],[]))
         
         print "Swaps: %d/%d/%d" % (swapped,attempted,iterations)
+    
+    def iterate(self,currents,temperatures):
+        return [mc3.chain.iterate(self,currents[i],temperatures[i]) for i in range(self.N)]
+        
+        # insert MPI logic here
+        
+        # newstate = self.proposal.propose(current)
+        # newstate.logL = self.data.logL(self.model.signal(newstate),newstate)
+        
+        # return self.stepper.step(current,newstate,temperature)
     
     def getpar(self,par,chain=0):
         try:
