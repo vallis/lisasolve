@@ -52,7 +52,7 @@ class lisadata(mc3.data):
         F2t = searchfuncs.Ftnumpy(self.sIf,self.sIIf,bbh,
                                   self.lisapsd,self.N,self.dt,self.fmin,
                                   synthlisatime=self.synthlisatime)
-        
+
         # look for maximum on either side of CoalescenceTime
         imax, F2tmax = searchfuncs.shift_to_max(F2t,self.sr)
         tcbest = bbh.CoalescenceTime + self.dt * (imax - self.sr)
