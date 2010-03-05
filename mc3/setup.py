@@ -8,5 +8,5 @@ setup(name='mc3',
       author='Michele Vallisneri',
       author_email='vallis@vallis.org',
       url='http://mc3.googlecode.com',
-      packages=['mc3'],
+      packages=['mc3','mc3lisa'],
      )
