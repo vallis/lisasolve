@@ -1,8 +1,8 @@
 import random
 import math
 
-# need to keep the random state somehow
-# perhaps it can be done by the base class
+# TO DO: need to keep the random state somehow
+#        perhaps it can be done by the base class
 
 class stepper(object):
     pass
@@ -19,3 +19,9 @@ class Metropolis(stepper):
             return proposed
         else:
             return current
+    
+
+class always(stepper):
+    def step(self,current,proposed,temperature=1.0):
+        return proposed
+    
