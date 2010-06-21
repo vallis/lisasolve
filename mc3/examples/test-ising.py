@@ -1,56 +1,98 @@
 import sys,random, math
-import numpy
+
+import numpy as N
+import matplotlib.pyplot as P
+
 import mc3
 
-if len(sys.argv) > 1:
-    T = float(sys.argv[1])
-else:
-    T = 2.0 / math.log(1.0 + math.sqrt(2.0))    # critical temperature
+# MODEL #1: (gridsize x gridsize) Ising model
+#           there's only one parameter, "spins", which holds the state of the entire grid
+#           as a numpy array
 
-# gridsize
+gridsize = 16
+T = 4.5
 
-d = 32
+# computing the total energy for up-down-left-right nearest-neighbor pairs
+# for homogeneous ferromagnetic interaction
+def energy(s):
+    return -(N.sum(s.spins[:-1,:]*s.spins[1:,:]) + N.sum(s.spins[:,:-1]*s.spins[:,1:]) +    # bulk
+             N.sum(s.spins[-1,:]*s.spins[0,:])   + N.sum(s.spins[:,-1]*s.spins[:,0]))       # boundary
 
-# model
+# computing the average magnetization
+def magnetization(s):
+    return N.sum(s.spins) / gridsize**2
 
-mymodel = mc3.model(parameters=[mc3.parameter('spins')],
-                    init=[numpy.ones([d,d])],
-                    computed=[mc3.computed('m', lambda X: numpy.sum(X[0]) / d**2)],
-                    saved=['m'])
+def absmag(s):
+    return abs(magnetization(s))
 
-# likelihood
+model_1 = mc3.model(searchpars = [mc3.parameter('spins')],
+                    otherpars  = [mc3.computed('m',magnetization),  # we teach the model how to compute m
+                                  mc3.computed('am',absmag)],
+                    logL = lambda s: -energy(s) / T)                # remember p \propto exp{-E/kt}
 
-mydata = mc3.data()
-mydata.logL = lambda X: numpy.sum(X[0][:-1,:]*X[0][1:,:]) + numpy.sum(X[0][:,:-1]*X[0][:,1:])
-
-# proposal
+# CHAIN #1: single spin-flip proposal; does not mix very well...
 
 def spinflip(current):
     newspins = current['spins'].copy()
-    newspins[random.randrange(0,len(newspins)),random.randrange(0,len(newspins))] *= -1.0
+    newspins[random.randrange(0,gridsize),random.randrange(0,gridsize)] *= -1.0
     
-    proposed = mc3.state(current.model)
-    proposed['spins'] = newspins
+    proposed = current.model.state({'spins': newspins})
     
     return proposed
 
-myprop = mc3.proposal()
-myprop.propose = spinflip
+chain_1 = mc3.chain(model = model_1,
+                    init  = {'spins': N.sign(N.random.randn(gridsize,gridsize))},
+                    proposal = mc3.proposal(spinflip),
+                    stepper = mc3.Metropolis(),
+                    store = ['m','am'],                             # we'd like to store only the magnetization
+                    progress = True)
 
-# MCMC
+chain_1.run(iterations=10000)
 
-mychain = mc3.chain(model=mymodel,
-                    proposal=myprop,
-                    stepper=mc3.Metropolis(),
-                    data=mydata,
-                    temperature=T)
+mc3.statchain(chain_1)
+mc3.plotchain(chain_1,otherpars=['m','am'],fignum=1,xbins=20)
 
-mychain.run(iterations=50000)
+# CHAIN #2: Wolff flipping procedure
 
-import pylab
+def neighbors(pos):
+    return [((pos[0] + D[0]) % gridsize,
+             (pos[1] + D[1]) % gridsize) for D in ((1,0),(-1,0),(0,1),(0,-1))]
 
-m = numpy.array(mychain.getpar('m'))
+# Wolff cluster-update algorithm (from Sethna 2006)
+def wolff(current):
+    spins = current['spins'].copy()
+    
+    begin = (random.randrange(0,gridsize),random.randrange(0,gridsize))
+    spinbegin = spins[begin]
+    
+    toflip = [begin]
+    
+    # Wolff detailed-balance probability
+    p = 1.0 - math.exp(-2.0/T)
+    
+    while toflip:
+        if spins[toflip[0]] == spinbegin:
+            spins[toflip[0]] *= -1
+            
+            for pos in neighbors(toflip[0]):
+                if spins[pos] == spinbegin and random.random() < p:
+                    toflip.append(pos)
+        
+        del toflip[0]
+    
+    return current.model.state({'spins': spins})
 
-pylab.figure(1); pylab.hist(m,bins=50)
-pylab.figure(2); pylab.plot(m)
-pylab.show()
+chain_2 = mc3.chain(model = model_1,
+                    init  = {'spins': N.sign(N.random.randn(gridsize,gridsize))},
+                    proposal = mc3.proposal(wolff),
+                    stepper = mc3.always(), # the Wolff procedure does not require the Metropolis arbitration
+                    store = ['m','am'],
+                    progress = True)
+
+chain_2.run(iterations=10000)
+
+mc3.statchain(chain_2)
+mc3.plotchain(chain_2,otherpars=['m','am'],fignum=2,xbins=20)
+
+P.show()
+
