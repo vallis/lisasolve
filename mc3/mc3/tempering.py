@@ -47,7 +47,7 @@ class tempering(mc3.chain):
         # insert MPI logic here
         
         # newstate = self.proposal.propose(current)
-        # newstate.logL = self.data.logL(self.model.signal(newstate),newstate)
+        # newstate.logL = self.data.logL(self.model.datamodel(newstate),newstate)
         
         # return self.stepper.step(current,newstate,temperature)
     
