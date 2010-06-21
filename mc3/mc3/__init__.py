@@ -5,3 +5,5 @@ from chain import *
 from tempering import *
 from model import *
 from data import *
+from plot import *
+from utility import *
