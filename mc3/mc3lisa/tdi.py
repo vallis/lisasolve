@@ -86,6 +86,7 @@ def fisher(center,scale):
     
     delta = lambda i: N.identity(d)[i,:]    # is there a good numpy builtin for the *vector* delta_ij?
     gettdi = lambda s: center.model.datamodel(center.model.state(s))
+    
     derivs = [ ( gettdi(x0 + delta(i)*dx[i]) - gettdi(x0 - delta(i)*dx[i]) ) / (2.0*dx[i]) for i in range(d) ]
         
     prods = N.zeros((d,d),'d')

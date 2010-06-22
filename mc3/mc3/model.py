@@ -205,12 +205,17 @@ class multimodel(model):
     def __init__(self,dim,searchpars,otherpars=[],prior=None,logL=None):
         self.dim = dim
         model.__init__(self,searchpars,otherpars,prior,logL)
+        
+        self._singlemodel = self.singlemodel(searchpars,otherpars,prior,logL)
     
     def choose(self,x,y):
         return computed(x,y) if callable(y) else default(x,N.array(y if isinstance(y,(tuple,list)) else [y]*self.dim))
     
     def state(self,init=None):
         return multistate(self,self.dim,init)
+    
+    def singlestate(self,init=None):
+        return state(self._singlemodel,init)
     
     def prior(self,state):
         return reduce(operator.mul,(reduce(operator.mul,(par.prior(singlepar)

@@ -27,9 +27,7 @@ def plotchain(chain,title='MCMC parameter plots',fignum=1,otherpars=[],xbins=50,
         P.subplot(subplots,3,3*i+1); P.hist(x,bins=xbins[i],normed=True); P.xlabel(par)
         if overplot[i]:
             a = N.linspace(N.min(x),N.max(x),plotbins[i])
-            # P.hold(True)
             P.plot(a,overplot[i](a))
-            # P.hold(False)
         # make a trajectory plot
         P.subplot(subplots,3,3*i+2); P.plot(x); P.xlabel(par)
         # make a normalized correlation plot
@@ -39,7 +37,7 @@ def plotchain(chain,title='MCMC parameter plots',fignum=1,otherpars=[],xbins=50,
     
     P.suptitle(title)
 
-def statchain(chain,report=True,skip=1,cov=True):
+def statchain(chain,report=True,skip=1,cov=True,err=False):
     if report:
         total = len(chain.samples)
         accepted = sum(1 for i in range(1,total) if chain.samples[i] != chain.samples[i-1])
@@ -53,7 +51,11 @@ def statchain(chain,report=True,skip=1,cov=True):
     mean = N.mean(parray,axis=0)
     print "Cond. means :" + (" %g" * len(mean)) % tuple(mean)
     
+    covmat = N.cov(parray.T)
+    
     if cov:
-        covmat = N.cov(parray.T)
         print "Covariance  :"; print covmat
-
+    
+    if err:
+        print "Errors      :"; print N.sqrt(N.diagonal(covmat))
+    

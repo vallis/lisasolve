@@ -1,12 +1,10 @@
-import mc3
-import tdi
-
-import FastBinary
-
-import math
-import numpy as N
-
+import math, operator           # system
+import numpy as N               # third party
 import matplotlib.pyplot as P
+
+import FastBinary               # lisatools packages
+
+import mc3, tdi                 # this package
 
 class gwdb(mc3.model):
     translate = {'f': 'Frequency', 'fdot': 'FrequencyDerivative',
@@ -25,11 +23,13 @@ class gwdb(mc3.model):
 
 # will use the mc3.multimodel.__init__ by default; that's OK
 # TO DO: certainly a synthetic TDI object would help here...
-class multigwdb(mc3.multimodel,gwdb):
+class multigwdb(mc3.multimodel):
     @staticmethod
-    def datamodel(self,multistate):
+    def datamodel(multistate):
         return reduce( operator.add,
-                       (gwdb.datamodel(multistate.singlestate(i)) for i in range(self.dim)) )
+                       (gwdb.datamodel(multistate.singlestate(i)) for i in range(multistate.model.dim)) )
     
-
-
+    @property
+    def singlemodel(self):
+        return gwdb
+    

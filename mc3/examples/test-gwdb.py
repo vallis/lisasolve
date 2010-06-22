@@ -10,6 +10,7 @@ import FastBinary
 import FrequencyArray
 
 # DATA: the target source is a monochromatic Galactic binary
+
 #       first we define the source parameters in a Python dictionary
 truepars = {'f': 0.001,
             'lat': 0.25*math.pi,
