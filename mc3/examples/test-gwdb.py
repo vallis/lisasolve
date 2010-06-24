@@ -6,9 +6,6 @@ import numpy as N
 import mc3
 import mc3lisa
 
-import FastBinary
-import FrequencyArray
-
 # DATA: the target source is a monochromatic Galactic binary
 
 #       first we define the source parameters in a Python dictionary

@@ -1,10 +1,6 @@
-import math, operator           # system
-import numpy as N               # third party
-import matplotlib.pyplot as P
-
-import FastBinary               # lisatools packages
-
-import mc3, tdi                 # this package
+import numpy as N
+import FastBinary
+import mc3, tdi
 
 class gwdb(mc3.model):
     translate = {'f': 'Frequency', 'fdot': 'FrequencyDerivative',
