@@ -1,0 +1,17 @@
+classes
+=======
+
+- data:		loads the target data, generates noise PSD, does likelihood given a model
+			in parallel MPI runs, each worker carries one
+- model:	when fed a state and data, makes a model (can handle default parameters)
+			in parallel MPI runs, each worker carries one
+- state: 	holds the state (a dictionary of parameters), priors
+			for parallel tempering, handles parallel multistate
+- proposal:	makes proposal distributions
+- stepper:	given a state, generates a new one
+			can handle parallel-tempering moves (also MPI)
+- chain:	collects chain data, holds current state, stores old states compactly
+			initialized with data, model, proposal, stepper
+
+- in parallel runs, the worker nodes initialize data and model, then sit in a loop where
+  it repeatedly computes models and likelihoods
