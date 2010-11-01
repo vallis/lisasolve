@@ -19,7 +19,7 @@ else:
 
 # now run the setup
 
-setup(name = 'lisaxml',
+setup(name = 'common',
       version = '$Id: m.vallis@gmail.com $',
       description = 'lisasolve common: sundry utilities',
       author = 'M. Vallisneri',
