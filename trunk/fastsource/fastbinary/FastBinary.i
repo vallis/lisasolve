@@ -31,6 +31,7 @@ import lisaxml
 
 import numpy
 import FrequencyArray
+from countdown import countdown
 import math
 import time
 import sys
@@ -73,26 +74,11 @@ class FastGalacticBinary(lisaxml.Source):
             NFFT = int(T/dt)
             buf = tuple(FrequencyArray.FrequencyArray(numpy.zeros(NFFT/2+1,dtype=numpy.complex128),kmin=0,df=1.0/T) for i in range(3))
             
-            lng = len(table); cnt = 0; time0 = time.time()
+            c = countdown.countdown(len(table),10000)
             for line in table:
-                (self.Frequency,
-                 self.FrequencyDerivative,
-                 self.EclipticLatitude,
-                 self.EclipticLongitude,
-                 self.Amplitude,
-                 self.Inclination,
-                 self.Polarization,
-                 self.InitialPhase) = line[:]
-                
-                self.onefourier(simulator,buffer=buf,T=T,dt=dt)
-                
-                cnt = cnt + 1
-                if cnt % 10000 == 0:
-                    time1 = time.time()
-                    print "\r%d/%d sources (%d/s), ETA %d s                    " % (cnt,lng,cnt/(time1-time0),(lng-cnt)/(cnt/(time1-time0))),
-                    sys.stdout.flush()
-            time1 = time.time()
-            print "\r%d finished, %d s elapsed (%d/s)" % (cnt,time1-time0,cnt/(time1-time0))
+                self.onefourier(simulator,vector=line,buffer=buf,T=T,dt=dt)                
+                c.status()
+            c.end()
             
             return buf
         else:
@@ -109,8 +95,7 @@ class FastGalacticBinary(lisaxml.Source):
             
             busy = [-1 for s in range(slaves)]
             
-            ln = len(table); cnt = 0
-            import countdown; c = countdown.countdown(ln,10000)
+            ln = len(table); cnt = 0; c = countdown.countdown(ln,10000)
             while cnt < ln:
                 for s in range(slaves):                 
                     if busy[s] == -1 and cnt < ln:
@@ -118,15 +103,11 @@ class FastGalacticBinary(lisaxml.Source):
                         send_reqs[s].Start()
                         recv_reqs[s].Start()
                         
-                        # print "Asking slave %d to do source %d" % (s+1,cnt); sys.stdout.flush()
-                        
                         busy[s] = cnt
                         cnt = cnt + 1
                 
-                if sum(x == -1 for x in busy) != len(busy):     # at least one of busy[s] is not -1
+                if sum(x == -1 for x in busy) != len(busy):
                     f = MPI.Prequest.Waitany(recv_reqs)
-                    
-                    # print "Completed source %d from slave %d" % (busy[f],f+1); sys.stdout.flush()
                     
                     busy[f] = -1
                     c.status()
@@ -134,7 +115,12 @@ class FastGalacticBinary(lisaxml.Source):
             
             for s in range(0,slaves):
                 send_bufs[s][0] = 0.0   # terminate by sending a zero as first parameter
-                send_reqs[s].Start()    
+                send_reqs[s].Start()
+            
+            MPI.Prequest.Waitall(send_reqs)
+            
+            for r in recv_reqs: r.Free()
+            for r in send_reqs: r.Free()
             
             NFFT = int(T/dt)
             buf = tuple(FrequencyArray.FrequencyArray(numpy.zeros(NFFT/2+1,dtype=numpy.complex128),kmin=0,df=1.0/T) for i in range(3))
@@ -172,6 +158,8 @@ class FastGalacticBinary(lisaxml.Source):
             else:
                 self.onefourier(simulator,vector=recv_buf,buffer=buf,T=T,dt=dt)
                 send_req.Start()
+        
+        recv_req.Free(); send_req.Free()
         
         for i in range(3):
             MPI.COMM_WORLD.Send((buf[i],MPI.DOUBLE_COMPLEX),0,i)
