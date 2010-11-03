@@ -74,7 +74,7 @@ class FastGalacticBinary(lisaxml.Source):
             NFFT = int(T/dt)
             buf = tuple(FrequencyArray.FrequencyArray(numpy.zeros(NFFT/2+1,dtype=numpy.complex128),kmin=0,df=1.0/T) for i in range(3))
             
-            c = countdown.countdown(len(table),10000)
+            c = countdown(len(table),10000)
             for line in table:
                 self.onefourier(simulator,vector=line,buffer=buf,T=T,dt=dt)                
                 c.status()
@@ -95,7 +95,7 @@ class FastGalacticBinary(lisaxml.Source):
             
             busy = [-1 for s in range(slaves)]
             
-            ln = len(table); cnt = 0; c = countdown.countdown(ln,10000)
+            ln = len(table); cnt = 0; c = countdown(ln,10000)
             while cnt < ln:
                 for s in range(slaves):                 
                     if busy[s] == -1 and cnt < ln:
