@@ -25,5 +25,5 @@ setup(name = 'common',
       author = 'M. Vallisneri',
       author_email = 'vallis@vallis.org',
       url = 'http://lisasolve.googlecode.com',
-      py_modules = ['countdown','FrequencyArray']
+      py_modules = ['countdown','FrequencyArray','workflow']
       )
