@@ -39,6 +39,7 @@ private:
                                                                     // Time series of slowly evolving terms at each vertex   
     double *a12, *a13, *a21, *a23, *a31, *a32;                      // Fourier coefficients of slowly evolving terms (numerical)
     double *b;                                                      // Fourier coefficients of rapidly evolving terms (analytical)
+    double *an, *bn;                                                // MV: Fourier transforms for convolve_fft
     double *c12, *c13, *c21, *c23, *c31, *c32;                      // Fourier coefficients of entire response (convolution)
     double ***d;                                                    // Package cij's into proper form for TDI subroutines
 
@@ -47,10 +48,14 @@ private:
     double *X, *Y, *Z;
 
     fftw_complex *in, *out;     // used by fftw3
-    fftw_plan plan_forward;
+    fftw_plan plan_forward, plan_backward;
 
     void spacecraft(double t);
+    
     void convolve(double *a, double *b, double *cn);
+    void convolve2(double *a, double *b, double *cn);
+    void convolve3(double *a, double *b, double *cn);
+
     void XYZ(double f0, long q, double *XLS, double *XSL, double *YLS, double *YSL, double *ZLS, double *ZSL);
 
 public:
