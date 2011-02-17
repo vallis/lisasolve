@@ -67,18 +67,21 @@ class FastGalacticBinary(lisaxml.Source):
                 elif par[2] != None:
                     setattr(self,par[0],par[2])
     
-    def fourier(self,simulator='synthlisa',table=None,T=6.2914560e7,dt=15,mpi=False):
+    # TO DO: need to fix MPI calculation for kmin != 0, length != None
+    def fourier(self,simulator='synthlisa',table=None,T=6.2914560e7,dt=15,mpi=False,kmin=0,length=None,status=True):
         if table == None:
-            return self.onefourier(simulator,T=T,dt=dt)
+            return self.onefourier(simulator,T=T,dt=dt,kmin=kmin,length=length)
         elif mpi == False:
-            NFFT = int(T/dt)
-            buf = tuple(FrequencyArray.FrequencyArray(numpy.zeros(NFFT/2+1,dtype=numpy.complex128),kmin=0,df=1.0/T) for i in range(3))
+            if length == None:
+                length = int(T/dt)/2 + 1    # was "NFFT = int(T/dt)", and "NFFT/2+1" passed to numpy.zeros
             
-            c = countdown(len(table),10000)
+            buf = tuple(FrequencyArray.FrequencyArray(numpy.zeros(length,dtype=numpy.complex128),kmin=kmin,df=1.0/T) for i in range(3))
+            
+            if status: c = countdown(len(table),10000)
             for line in table:
                 self.onefourier(simulator,vector=line,buffer=buf,T=T,dt=dt)                
-                c.status()
-            c.end()
+                if status: c.status()
+            if status: c.end()
             
             return buf
         else:
@@ -228,8 +231,18 @@ class FastGalacticBinary(lisaxml.Source):
         
             return (retX,retY,retZ)
         else:
+            kmin, blen, alen = buffer[0].kmin, len(buffer[0]), 2*M
+            
+            beg, end = int(self.Frequency*T) - M/2, int(self.Frequency*T) + M/2     # for a full buffer, "a" begins and ends at these indices
+            begb, bega = (beg - kmin, 0) if beg >= kmin else (0, 2*(kmin - beg))    # left-side alignment of partial buffer with "a"
+            endb, enda = (end - kmin, alen) if end - kmin <= blen else (blen, alen - 2*(end - kmin - blen))
+                                                                                    # the corresponding part of "a" that should be assigned to the partial buffer
+                                                                                    # ...remember "a" is doubled up
+                                                                                    # check: if kmin = 0, then begb = beg, endb = end, bega = 0, enda = alen
+            
             for i,a in enumerate((fastbin.XSL, fastbin.YSL, fastbin.ZSL) if simulator == 'synthlisa' else (fastbin.XLS, fastbin.YLS, fastbin.ZLS)):
-                buffer[i][(int(self.Frequency*T) - M/2):(int(self.Frequency*T) + M/2)] += a[::2] - 1j * a[1::2]
+                buffer[i][begb:endb] += a[bega:enda:2] - 1j * a[(bega+1):enda:2]
+                # buffer[i][(int(self.Frequency*T) - M/2):(int(self.Frequency*T) + M/2)] += a[::2] - 1j * a[1::2]
     
     # total observation time is hardcoded to 2^22 * 15 seconds
     def TDI(self,T=6.2914560e7,dt=15.0,simulator='synthlisa',table=None):
