@@ -31,11 +31,8 @@ FastResponse::FastResponse(long Nreq,double Treq,double dtreq) : N(Nreq), M(Nreq
     data12 = dvector(1,2*N); data21 = dvector(1,2*N); data31 = dvector(1,2*N);
     data13 = dvector(1,2*N); data23 = dvector(1,2*N); data32 = dvector(1,2*N); 
 
-    a12 = dvector(1,2*N+2); a21 = dvector(1,2*N+2); a31 = dvector(1,2*N+2);
-    a13 = dvector(1,2*N+2); a23 = dvector(1,2*N+2); a32 = dvector(1,2*N+2);
-
     b = dvector(1,2*M+2);
-
+        
     c12 = dvector(1,2*M+2); c21 = dvector(1,2*M+2); c31 = dvector(1,2*M+2);
     c13 = dvector(1,2*M+2); c23 = dvector(1,2*M+2); c32 = dvector(1,2*M+2);
 
@@ -43,7 +40,9 @@ FastResponse::FastResponse(long Nreq,double Treq,double dtreq) : N(Nreq), M(Nreq
 
     in  = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
     out = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
-    plan_forward = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+
+    plan_forward  = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD,  FFTW_ESTIMATE);
+    plan_backward = fftw_plan_dft_1d(N, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
     
     ReA = dvector(1,N);  ImA = dvector(1,N);
     ReB = dvector(1,M);  ImB = dvector(1,M);
@@ -53,6 +52,7 @@ FastResponse::FastResponse(long Nreq,double Treq,double dtreq) : N(Nreq), M(Nreq
 };
 
 FastResponse::~FastResponse() {
+    fftw_destroy_plan(plan_backward);
     fftw_destroy_plan(plan_forward);
     fftw_free(in);
     fftw_free(out);
@@ -81,9 +81,6 @@ FastResponse::~FastResponse() {
     free_dvector(data12,1,2*N); free_dvector(data21,1,2*N); free_dvector(data31,1,2*N);
     free_dvector(data13,1,2*N); free_dvector(data23,1,2*N); free_dvector(data32,1,2*N); 
 
-    free_dvector(a12,1,2*N+2); free_dvector(a21,1,2*N+2); free_dvector(a31,1,2*N+2);
-    free_dvector(a13,1,2*N+2); free_dvector(a23,1,2*N+2); free_dvector(a32,1,2*N+2);
-
     free_dvector(b,1,2*M+2);
 
     free_dvector(c12,1,2*M+2); free_dvector(c21,1,2*M+2); free_dvector(c31,1,2*M+2);
@@ -98,13 +95,32 @@ FastResponse::~FastResponse() {
     free_dvector(X,1,2*M);  free_dvector(Y,1,2*M);  free_dvector(Z,1,2*M);
 };
 
+void FastResponse::convolve(double *a,double *bn,double *cn) {
+    int n,m;
+
+    // invert frequencies in a
+
+    in[0][0] = a[2*0+1]*bn[2*0+1] - a[2*0+2]*bn[2*0+2];
+    in[0][1] = a[2*0+1]*bn[2*0+2] + a[2*0+2]*bn[2*0+1];    
+        
+    for(n=1; n<N; n++) {
+        in[n][0] = a[2*(N-n)+1]*bn[2*n+1] - a[2*(N-n)+2]*bn[2*n+2];
+        in[n][1] = a[2*(N-n)+1]*bn[2*n+2] + a[2*(N-n)+2]*bn[2*n+1];
+    }
+    
+    fftw_execute(plan_backward);
+    
+    for(n=0; n<N; n++) {
+        cn[2*n+1] = out[n][0] / N;
+        cn[2*n+2] = out[n][1] / N;
+    }    
+}
+
 void FastResponse::Response(double f0,double fdot,double theta,double phi,double A,double iota,double psi,double phio,
                             double *XLS,long XLSlen,double *XSL,long XSLlen,
                             double *YLS,long YLSlen,double *YSL,long YSLlen,
-                            double *ZLS,long ZLSlen,double *ZSL,long ZSLlen) {
-    // TODO: whence T?
-    // printf("%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g\n",f0,fdot,theta,phi,A,iota,psi,phio);
-
+                            double *ZLS,long ZLSlen,double *ZSL,long ZSLlen)
+{
     // Calculate cos and sin of sky position, inclination, polarization
     double costh = cos(theta);   double sinth = sin(theta);
     double cosph = cos(phi);     double sinph = sin(phi);
@@ -225,125 +241,27 @@ void FastResponse::Response(double f0,double fdot,double theta,double phi,double
         data13[2*n-1] = TR[1][3];   data23[2*n-1] = TR[2][3];   data32[2*n-1] = TR[3][2];
         data13[2*n]   = TI[1][3];   data23[2*n]   = TI[2][3];   data32[2*n]   = TI[3][2];
     }
-
-    for(int n=1; n<=N; n++) {
-        in[n-1][0] =  data12[2*n-1];
-        in[n-1][1] = -data12[2*n];
-    }
-
+        
+    // this B transform needs to be done only once
+    for(int n=0; n<N; n++) { in[n][0] = b[2*n+1]; in[n][1] = b[2*n+2]; }    
     fftw_execute(plan_forward);
+    for(int n=0; n<N; n++) { b[2*n+1] = out[n][0]; b[2*n+2] = out[n][1]; }
+    
+    // TO DO: these could be multithreaded, but we'll need more FFTW plans
+    convolve(data12, b, c12);  convolve(data21, b, c21);  convolve(data31, b, c31);
+    convolve(data13, b, c13);  convolve(data23, b, c23);  convolve(data32, b, c32);
 
-    data12[1] =  out[0][0];
-    data12[2] = -out[0][1];
-
-    for(int i=2; i<=N; i++) {
-      data12[2*i-1] =  out[N+1-i][0];
-      data12[2*i]   = -out[N+1-i][1];
-    }
-
-    for(int n=1; n<=N; n++) {
-        in[n-1][0] =  data21[2*n-1];
-        in[n-1][1] = -data21[2*n];
-    }
-
-    fftw_execute(plan_forward);
-
-    data21[1] =  out[0][0];
-    data21[2] = -out[0][1];
-
-    for(int i=2; i<=N; i++) {
-        data21[2*i-1] =  out[N+1-i][0];
-        data21[2*i]   = -out[N+1-i][1];
-    }
-
-    for(int n=1; n<=N; n++) {
-        in[n-1][0] =  data13[2*n-1];
-        in[n-1][1] = -data13[2*n];
-    }
-
-    fftw_execute(plan_forward);
-
-    data13[1] =  out[0][0];
-    data13[2] = -out[0][1];
-  
-    for(int i=2; i<=N; i++) {
-        data13[2*i-1] =  out[N+1-i][0];
-        data13[2*i]   = -out[N+1-i][1];
-    }
-
-    for(int n=1; n<=N; n++) {
-        in[n-1][0] =  data31[2*n-1];
-        in[n-1][1] = -data31[2*n];
-    }
-
-    fftw_execute(plan_forward);
-
-    data31[1] =  out[0][0];
-    data31[2] = -out[0][1];
-
-    for(int i=2; i<=N; i++) {
-        data31[2*i-1] =  out[N+1-i][0];
-        data31[2*i]   = -out[N+1-i][1];
-    }
-
-    for(int n=1; n<=N; n++) {
-        in[n-1][0] =  data32[2*n-1];
-        in[n-1][1] = -data32[2*n];
-    }
-
-    fftw_execute(plan_forward);
-
-    data32[1] =  out[0][0];
-    data32[2] = -out[0][1];
-
-    for(int i=2; i<=N; i++) {
-        data32[2*i-1] = out[N+1-i][0];
-        data32[2*i] = -out[N+1-i][1];
-    }
-
-    for(int n=1; n<=N; n++) {
-        in[n-1][0] = data23[2*n-1];
-        in[n-1][1] = -data23[2*n];
-    }
-
-    fftw_execute(plan_forward);
-
-    data23[1] = out[0][0];
-    data23[2] = -out[0][1];
-
-    for(int i=2; i<=N; i++) {
-        data23[2*i-1] = out[N+1-i][0];
-        data23[2*i] = -out[N+1-i][1];
-    }
-
-    for(int i=1; i<=N; i++) {
-        a12[i]   = data12[N+i] / (double)N;  a21[i]   = data21[N+i] / (double)N;  a31[i]   = data31[N+i] / (double)N;
-        a12[i+N] = data12[i]   / (double)N;  a21[i+N] = data21[i]   / (double)N;  a31[i+N] = data31[i]   / (double)N;
-        a13[i]   = data13[N+i] / (double)N;  a23[i]   = data23[N+i] / (double)N;  a32[i]   = data32[N+i] / (double)N;
-        a13[i+N] = data13[i]   / (double)N;  a23[i+N] = data23[i]   / (double)N;  a32[i+N] = data32[i]   / (double)N;
-    }
-
-    a12[2*N+1] = data12[N+1] / (double)N;  a21[2*N+1] = data21[N+1] / (double)N;  a31[2*N+1] = data31[N+1] / (double)N;
-    a12[2*N+2] = data12[N+2] / (double)N;  a21[2*N+2] = data21[N+2] / (double)N;  a31[2*N+2] = data31[N+2] / (double)N;
-    a13[2*N+1] = data13[N+1] / (double)N;  a23[2*N+1] = data23[N+1] / (double)N;  a32[2*N+1] = data32[N+1] / (double)N;
-    a13[2*N+2] = data13[N+2] / (double)N;  a23[2*N+2] = data23[N+2] / (double)N;  a32[2*N+2] = data32[N+2] / (double)N;
-
-
-    // Convolving Fourier Coefficients
-    convolve(a12, b, c12);  convolve(a21, b, c21);  convolve(a31, b, c31);
-    convolve(a13, b, c13);  convolve(a23, b, c23);  convolve(a32, b, c32);
-  
     // Renormalize so that the time series is real
     for(int i=1; i<=2*M; i++) {
         d[1][2][i] = 0.5*c12[i];  d[2][1][i] = 0.5*c21[i];  d[3][1][i] = 0.5*c31[i];
         d[1][3][i] = 0.5*c13[i];  d[2][3][i] = 0.5*c23[i];  d[3][2][i] = 0.5*c32[i];
     }
-
+    
     /* Call subroutines for synthesizing different TDI data channels */
-  
+    
     /* X Y Z-Channel: note the pointer change since we're passed 0-based arrays */
     XYZ(f0, q, --XLS, --XSL, --YLS, --YSL, --ZLS, --ZSL);
- 
+    
     return;
 }
 
@@ -383,8 +301,9 @@ void FastResponse::spacecraft(double t) {
     z[3] = -sq3*AU*ec*(ca*cb + sa*sb);
 }
 
-/* Frequency domain convolution of slow and fast Fourier coefficients */
-void FastResponse::convolve(double *a, double *b, double *cn) {
+// the following two replace the convolve in the original code, but at this point they don't work with the main code
+
+void FastResponse::convolve2(double *a, double *b, double *cn) {
     for(int i=1; i<=N; i++) {
         ReA[i] = a[2*i-1];
         ImA[i] = a[2*i];
@@ -421,6 +340,20 @@ void FastResponse::convolve(double *a, double *b, double *cn) {
 
        cn[2*i-1] = ReC[m];
        cn[2*i]   = ImC[m];
+    }
+}
+
+/* This should be faster, but it's not! */
+void FastResponse::convolve3(double *a, double *b, double *cn) {
+    for(int j=0; j<M; j++) {
+        cn[2*j+1] = 0; cn[2*j+2] = 0;
+        
+        for(int n=0; n<N; n++) {
+            int i = (j - n + N/2 + M) % M;
+            
+            cn[2*j+1] += a[2*n+1]*b[2*i+1] - a[2*n+2]*b[2*i+2];
+            cn[2*j+2] += a[2*n+1]*b[2*i+2] + a[2*n+2]*b[2*i+1];
+        }
     }
 }
 
