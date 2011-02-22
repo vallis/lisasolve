@@ -44,18 +44,14 @@ FastResponse::FastResponse(long Nreq,double Treq,double dtreq) : N(Nreq), M(Nreq
     plan_forward  = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD,  FFTW_ESTIMATE);
     plan_backward = fftw_plan_dft_1d(N, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
     
-    ReA = dvector(1,N);  ImA = dvector(1,N);
-    ReB = dvector(1,M);  ImB = dvector(1,M);
-    ReC = dvector(1,M);  ImC = dvector(1,M);
-    
     X = dvector(1,2*M);  Y = dvector(1,2*M);  Z = dvector(1,2*M);
 };
 
 FastResponse::~FastResponse() {
     fftw_destroy_plan(plan_backward);
     fftw_destroy_plan(plan_forward);
-    fftw_free(in);
-    fftw_free(out);
+
+    fftw_free(in); fftw_free(out);
 
     free_dvector(u,1,3); free_dvector(v,1,3); free_dvector(k,1,3);
 
@@ -77,7 +73,7 @@ FastResponse::~FastResponse() {
     free_dvector(r13,1,3); free_dvector(r23,1,3); free_dvector(r32,1,3);
 
     free_dmatrix(TR,1,3,1,3); free_dmatrix(TI,1,3,1,3);
-
+    
     free_dvector(data12,1,2*N); free_dvector(data21,1,2*N); free_dvector(data31,1,2*N);
     free_dvector(data13,1,2*N); free_dvector(data23,1,2*N); free_dvector(data32,1,2*N); 
 
@@ -87,30 +83,26 @@ FastResponse::~FastResponse() {
     free_dvector(c13,1,2*M+2); free_dvector(c23,1,2*M+2); free_dvector(c32,1,2*M+2);
 
     free_d3tensor(d,1,3,1,3,1,2*M);
-    
-    free_dvector(ReA,1,N); free_dvector(ImA,1,N);
-    free_dvector(ReB,1,M); free_dvector(ImB,1,M);
-    free_dvector(ReC,1,M); free_dvector(ImC,1,M);
-    
+        
     free_dvector(X,1,2*M);  free_dvector(Y,1,2*M);  free_dvector(Z,1,2*M);
 };
 
 void FastResponse::convolve(double *a,double *bn,double *cn) {
-    int n,m;
-
-    // invert frequencies in a
-
+    // multiply, inverting frequencies in a
+    
     in[0][0] = a[2*0+1]*bn[2*0+1] - a[2*0+2]*bn[2*0+2];
     in[0][1] = a[2*0+1]*bn[2*0+2] + a[2*0+2]*bn[2*0+1];    
-        
-    for(n=1; n<N; n++) {
+    
+    for(int n=1; n<N; n++) {
         in[n][0] = a[2*(N-n)+1]*bn[2*n+1] - a[2*(N-n)+2]*bn[2*n+2];
         in[n][1] = a[2*(N-n)+1]*bn[2*n+2] + a[2*(N-n)+2]*bn[2*n+1];
     }
     
+    // run the inverse FFT
+
     fftw_execute(plan_backward);
     
-    for(n=0; n<N; n++) {
+    for(int n=0; n<N; n++) {
         cn[2*n+1] = out[n][0] / N;
         cn[2*n+2] = out[n][1] / N;
     }    
@@ -299,62 +291,6 @@ void FastResponse::spacecraft(double t) {
     x[3] = AU*ca + AU*ec*(sa*ca*sb - (1. + sa*sa)*cb);
     y[3] = AU*sa + AU*ec*(sa*ca*cb - (1. + ca*ca)*sb);
     z[3] = -sq3*AU*ec*(ca*cb + sa*sb);
-}
-
-// the following two replace the convolve in the original code, but at this point they don't work with the main code
-
-void FastResponse::convolve2(double *a, double *b, double *cn) {
-    for(int i=1; i<=N; i++) {
-        ReA[i] = a[2*i-1];
-        ImA[i] = a[2*i];
-    }
-
-    for(int i=1; i<=M; i++) {
-        ReB[i] = b[2*i-1];
-        ImB[i] = b[2*i];
-    }
-
-    for(int i=1; i<=M; i++) {
-        ReC[i] = ImC[i] = 0.;
-
-        for(int n=1; n<=N; n++) {
-	        int m = i - n + (N-M)/2;
-	  
-	        if(m<1) {
-	            do {
-		            m = m + M;
-		        } while(m<1);
-	        }
-
-	        ReC[i] += ReA[n]*ReB[m] - ImA[n]*ImB[m];
-	        ImC[i] += ReA[n]*ImB[m] + ImA[n]*ReB[m];
-	    }
-    }
-  
-    for(int i=1; i<=M; i++) {
-        int m = M/2 + i + 1;
-
-        if(m>M) {
-            m = m-M;
-        }
-
-       cn[2*i-1] = ReC[m];
-       cn[2*i]   = ImC[m];
-    }
-}
-
-/* This should be faster, but it's not! */
-void FastResponse::convolve3(double *a, double *b, double *cn) {
-    for(int j=0; j<M; j++) {
-        cn[2*j+1] = 0; cn[2*j+2] = 0;
-        
-        for(int n=0; n<N; n++) {
-            int i = (j - n + N/2 + M) % M;
-            
-            cn[2*j+1] += a[2*n+1]*b[2*i+1] - a[2*n+2]*b[2*i+2];
-            cn[2*j+2] += a[2*n+1]*b[2*i+2] + a[2*n+2]*b[2*i+1];
-        }
-    }
 }
 
 void FastResponse::XYZ(double f0, long q, double *XLS, double *XSL, double *YLS, double *YSL, double *ZLS, double *ZSL) {
