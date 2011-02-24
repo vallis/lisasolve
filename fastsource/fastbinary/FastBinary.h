@@ -16,6 +16,9 @@ const double kappa = 0.0;           // initial azimuthal position of the guiding
 const double lambda = 0.0;          // initial orientation of the LISA constellation
 const double ec = 0.009648370435;   // eccentricity
 
+/* #include <complex>
+   typedef std::complex<double> cdouble; */
+
 extern "C" {
     #include <fftw3.h>
     
@@ -29,7 +32,7 @@ private:
     
     double *u,*v,*k;            // Gravitational Wave basis vectors
     double *kdotx, **kdotr;     // Dot products
-    double *xi, *f, *fonfs;     // Distance, gravitational wave frequency & ratio of f and transfer frequency f*
+    double *xi, *fonfs;     // Distance, gravitational wave frequency & ratio of f and transfer frequency f*
     double **eplus, **ecross, **dplus, **dcross;    // Polarization basis tensors, convenient quantities    
     double *x, *y, *z;                              // Spacecraft position and separation vectors
     double **xv, **yv, **zv;
@@ -41,20 +44,17 @@ private:
     double *b;                                                      // Fourier coefficients of rapidly evolving terms (analytical)
     double *an, *bn;                                                // MV: Fourier transforms for convolve_fft
     double *c12, *c13, *c21, *c23, *c31, *c32;                      // Fourier coefficients of entire response (convolution)
-    double ***d;                                                    // Package cij's into proper form for TDI subroutines
 
     double *ReA, *ImA, *ReB, *ImB, *ReC, *ImC;    
 
     double *X, *Y, *Z;
-
-    fftw_complex *in, *out;     // used by fftw3
+    
+    fftw_complex *in, *out;
     fftw_plan plan_forward, plan_backward;
 
     void spacecraft(double t);
     
-    void convolve(double *a, double *b, double *cn);
-    void convolve2(double *a, double *b, double *cn);
-    void convolve3(double *a, double *b, double *cn);
+    void convolve(double *a, double *b, double *cn, int method);
 
     void XYZ(double f0, long q, double *XLS, double *XSL, double *YLS, double *YSL, double *ZLS, double *ZSL);
 
@@ -65,5 +65,6 @@ public:
     void Response(double f0,double fdot,double theta,double phi,double A,double iota,double psi,double phio,
                   double *XLS,long XLSlen,double *XSL,long XSLlen,
                   double *YLS,long YLSlen,double *YSL,long YSLlen,
-                  double *ZLS,long ZLSlen,double *ZSL,long ZSLlen);
+                  double *ZLS,long ZLSlen,double *ZSL,long ZSLlen,
+                  int method);
 };
