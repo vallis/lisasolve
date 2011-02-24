@@ -19,11 +19,9 @@ class flow(object):
         
         if type(command) == list:
             command = '; '.join(command)
-        
         command = command % self.__dict__
         
         command = re.sub('\$0',self.w(target),command)
-        
         for i,source in enumerate(sources):
             command = re.sub('\$%d' % (i+1),self.w(source),command)
         
@@ -34,6 +32,8 @@ class flow(object):
             for t in self.makerules:
                 self.make(t)            # these won't be in any particular order, but it does not matter
         else:
+            target  = target % self.__dict__
+            
             if target in self.making:
                 raise RuntimeError, ("flow.make: Met a circular condition while making %s!" % target)
             else:
@@ -55,7 +55,8 @@ class flow(object):
             self.indent = self.indent[:-2]
             
             if (not isfile(self.w(target)) or newer_group([self.w(s) for s in sources],self.w(target))) and not (self.dryrun and target in self.drymade):
-                print "flow.make: %sMaking target %s by running %s." % (self.indent,target,command); sys.stdout.flush()
+                print "\033[91flow.make: %sMaking target %s by running %s.\033[0m" % (self.indent,target,command); sys.stdout.flush()
+                # use 92- for green, yellow, blue, purple
                 
                 if self.dryrun:
                     self.drymade.append(target)
