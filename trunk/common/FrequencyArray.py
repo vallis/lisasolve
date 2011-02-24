@@ -1,29 +1,34 @@
 import numpy
 
 class FrequencyArray(numpy.ndarray):
-    defaults = {'df': None, 'kmin': 0}
-    
-    def __new__(subtype, data, dtype=None, copy=False, **kwargs):
-        # Make sure we are working with an array, and copy the data if requested
-        subarr = numpy.array(data, dtype=dtype, copy=copy)
-        
-        # Transform 'subarr' from an ndarray to our new subclass.
+    def __new__(subtype,data,dtype=None,copy=False,df=None,kmin=None):
+        # make sure we are working with an array, copy the data if requested,
+        # then transform the array to our new subclass
+        subarr = numpy.array(data,dtype=dtype,copy=copy)
         subarr = subarr.view(subtype)
         
-        for attr in ['df','kmin']:
-            if (attr in kwargs):
-                setattr(subarr,attr,kwargs[attr])
-            elif hasattr(data,attr):
-                setattr(subarr,attr,getattr(data,attr))
+        # get df and kmin preferentially from the initialization,
+        # then from the data object, otherwise set to None
+        subarr.df   = df   if df   is not None else getattr(data,'df',  None)
+        subarr.kmin = kmin if kmin is not None else getattr(data,'kmin',0)
         
-        # Finally, we must return the newly created object:
         return subarr
     
-    def __array_finalize__(self,obj):
-        # this sets the defaults
-        for attr in ['df','kmin']:      
-            if not hasattr(self, attr):
-                setattr(self,attr,getattr(obj,attr,self.defaults[attr]))
+    def __array_wrap__(self,out_arr,context=None):
+        out_arr.df, out_arr.kmin = self.df, self.kmin
+        
+        return numpy.ndarray.__array_wrap__(self,out_arr,context)
+        
+    def __getitem__(self,key):
+        return self.view(numpy.ndarray)[key]
+    
+    def __getslice__(self,i,j):
+        return self.view(numpy.ndarray)[i:j]
+    
+    # def __array_finalize__(self,obj):
+    #    if obj is None: return
+    #    self.df   = getattr(obj,'df',  None)
+    #    self.kmin = getattr(obj,'kmin',None)
     
     def __repr__(self):
         if self.df is not None:
@@ -37,33 +42,33 @@ class FrequencyArray(numpy.ndarray):
             beg = min(self.kmin,other.kmin)
             end = max(self.kmin + len(self),other.kmin + len(other))
             
-            ret = FrequencyArray(numpy.zeros(end-beg,dtype=self.dtype),kmin=beg,df=self.df)
+            ret = numpy.zeros(end-beg,dtype=self.dtype)
             
-            ret[(self.kmin  - ret.kmin):(self.kmin  - ret.kmin + len(self) )]  = self[:]
-            numpy.ndarray.__iadd__(ret[(other.kmin - ret.kmin):(other.kmin - ret.kmin + len(other))],other[:])
+            ret[(self.kmin  - beg):(self.kmin  - beg + len(self))]   = self
+            ret[(other.kmin - beg):(other.kmin - beg + len(other))] += other
             
-            return ret
+            return FrequencyArray(ret,kmin=beg,df=self.df)
         
         # fall back to simple arrays (may waste memory)
         return numpy.ndarray.__add__(self,other)
     
+    # same behavior as __add__: TO DO -- consider restricting the result to the extend of the first array
     def __sub__(self,other):
         if isinstance(other,FrequencyArray) and (self.df == other.df):
             beg = min(self.kmin,other.kmin)
             end = max(self.kmin + len(self),other.kmin + len(other))
             
-            ret = FrequencyArray(numpy.zeros(end-beg,dtype=self.dtype),kmin=beg,df=self.df)
+            ret = numpy.zeros(end-beg,dtype=self.dtype)
             
-            ret[(self.kmin  - ret.kmin):(self.kmin  - ret.kmin + len(self) )]  = self[:]
-            numpy.ndarray.__isub__(ret[(other.kmin - ret.kmin):(other.kmin - ret.kmin + len(other))],other[:])
+            ret[(self.kmin  - beg):(self.kmin  - beg + len(self))]   = self
+            ret[(other.kmin - beg):(other.kmin - beg + len(other))] -= other
             
-            return ret
+            return FrequencyArray(ret,kmin=beg,df=self.df)
         
         # fall back to simple arrays (may waste memory)
         return numpy.ndarray.__sub__(self,other)        
     
-    # rsub will restrict the result to the extent of the first array,
-    # which makes sense for data, if you think about it
+    # restrict the result to the extent of the first array (useful, e.g., for logL over frequency-limited data)
     def rsub(self,other):
         if isinstance(other,FrequencyArray) and (self.df == other.df):
             if other.kmin >= self.kmin + len(self) or self.kmin >= other.kmin + len(other):
@@ -72,11 +77,10 @@ class FrequencyArray(numpy.ndarray):
                 beg = max(self.kmin,other.kmin)
                 end = min(self.kmin + len(self),other.kmin + len(other))
                 
-                ret = self.copy()
+                ret = numpy.array(self,copy=True)
+                ret[(beg - self.kmin):(end - self.kmin)] -= other[(beg - other.kmin):(end - other.kmin)]
                 
-                numpy.ndarray.__isub__(ret[(beg - self.kmin):(end - self.kmin)],other[(beg - other.kmin):(end - other.kmin)])
-                
-                return ret
+                return FrequencyArray(ret,kmin=self.kmin,df=self.df)
         
         return numpy.ndarray.__sub__(self,other)
     
@@ -101,7 +105,6 @@ class FrequencyArray(numpy.ndarray):
         numpy.ndarray.__isub__(self,other)
         return self
     
-    
     # in multiplication, we go for the intersection of arrays (not their union!)
     # no intersection return a scalar 0
     def __mul__(self,other):
@@ -112,36 +115,21 @@ class FrequencyArray(numpy.ndarray):
             if beg >= end:
                 return 0.0
             else:
-                ret = FrequencyArray(numpy.zeros(end-beg,dtype=self.dtype),kmin=beg,df=self.df)
-            
-                ret[:]  = self[(ret.kmin - self.kmin):(ret.kmin - self.kmin + len(ret))]
-                numpy.ndarray.__imul__(ret[:],other[(ret.kmin - other.kmin):(ret.kmin - other.kmin + len(ret))])
-            
-                return ret
+                ret = numpy.array(self[(beg - self.kmin):(end - self.kmin)],copy=True)
+                ret *= other[(beg - other.kmin):(end - other.kmin)]
+                
+                return FrequencyArray(ret,kmin=beg,df=self.df)
         
         # fall back to simple arrays (may waste memory)
         return numpy.ndarray.__mul__(self,other)
     
-    # the inplace multiply works only if the second array is contained in the first
-    def __imul__(self,other):
-        if isinstance(other,FrequencyArray) and (self.df == other.df):
-            if (self.kmin <= other.kmin) and (self.kmin + len(self) >= other.kmin + len(other)):
-                numpy.ndarray.__imul__(self[(other.kmin - self.kmin):(other.kmin - self.kmin + len(other))],other[:])
-                return self
-                
-        # fall back to simple arrays
-        numpy.ndarray.__imul__(self,other)
-        return self
-    
-    # division works only if the first array is contained in the second
+    # in division, we require the arrays to coincide
     def __div__(self,other):
-        if isinstance(other,FrequencyArray) and (self.df == other.df):
-            if (self.kmin >= other.kmin) and (self.kmin + len(self) <= other.kmin + len(other)):
-                ret = self.copy()
-                
-                numpy.ndarray.__idiv__(ret[:],other[(self.kmin - other.kmin):(self.kmin - other.kmin + len(self))])
-                
-                return ret
+        if isinstance(other,FrequencyArray) and (self.df == other.df) and (self.kmin == other.kmin) and (len(self) == len(other)):
+            ret = numpy.array(self,copy=True)
+            ret /= other[:]
+            
+            return FrequencyArray(ret,kmin=self.kmin,df=self.df)
         
         # fall back to simple arrays
         return numpy.ndarray.__div__(self,other)
