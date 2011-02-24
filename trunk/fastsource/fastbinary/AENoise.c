@@ -14,7 +14,6 @@ double AEnoise(double f)
   double Sn, red, confusion_noise;
   double f1, f2;
   double A1, A2, slope;
-  FILE *outfile;
   
   red = (2.0*pi*1.0e-4)*(2.0*pi*1.0e-4);
 

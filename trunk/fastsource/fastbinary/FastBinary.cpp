@@ -16,7 +16,7 @@ FastResponse::FastResponse(long Nreq,double Treq,double dtreq) : N(Nreq), M(Nreq
 
     kdotx = dvector(1,3); kdotr = dmatrix(1,3,1,3);
 
-    xi = dvector(1,3); f = dvector(1,3); fonfs = dvector(1,3);
+    xi = dvector(1,3); fonfs = dvector(1,3);
 
     eplus  = dmatrix(1,3,1,3); ecross = dmatrix(1,3,1,3); 
     dplus  = dmatrix(1,3,1,3); dcross = dmatrix(1,3,1,3); 
@@ -28,15 +28,15 @@ FastResponse::FastResponse(long Nreq,double Treq,double dtreq) : N(Nreq), M(Nreq
 
     TR = dmatrix(1,3,1,3); TI = dmatrix(1,3,1,3);
 
+    // these are the long vectors...
+
     data12 = dvector(1,2*N); data21 = dvector(1,2*N); data31 = dvector(1,2*N);
     data13 = dvector(1,2*N); data23 = dvector(1,2*N); data32 = dvector(1,2*N); 
 
-    b = dvector(1,2*M+2);
-        
-    c12 = dvector(1,2*M+2); c21 = dvector(1,2*M+2); c31 = dvector(1,2*M+2);
-    c13 = dvector(1,2*M+2); c23 = dvector(1,2*M+2); c32 = dvector(1,2*M+2);
+    b = dvector(1,2*M);
 
-    d = d3tensor(1,3,1,3,1,2*M);
+    c12 = dvector(1,2*M); c21 = dvector(1,2*M); c31 = dvector(1,2*M);
+    c13 = dvector(1,2*M); c23 = dvector(1,2*M); c32 = dvector(1,2*M);
 
     in  = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
     out = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
@@ -59,8 +59,6 @@ FastResponse::~FastResponse() {
 
     free_dvector(xi,1,3);
 
-    free_dvector(f,1,3);
-
     free_dvector(fonfs,1,3);
 
     free_dmatrix(eplus,1,3,1,3); free_dmatrix(ecross,1,3,1,3); 
@@ -81,13 +79,12 @@ FastResponse::~FastResponse() {
 
     free_dvector(c12,1,2*M+2); free_dvector(c21,1,2*M+2); free_dvector(c31,1,2*M+2);
     free_dvector(c13,1,2*M+2); free_dvector(c23,1,2*M+2); free_dvector(c32,1,2*M+2);
-
-    free_d3tensor(d,1,3,1,3,1,2*M);
         
     free_dvector(X,1,2*M);  free_dvector(Y,1,2*M);  free_dvector(Z,1,2*M);
 };
 
-void FastResponse::convolve(double *a,double *bn,double *cn) {
+// note that this works only if M == N, appropriate for algorithm=='legacy'/method==0
+void FastResponse::convolve(double *a,double *bn,double *cn,int method) {
     // multiply, inverting frequencies in a
     
     in[0][0] = a[2*0+1]*bn[2*0+1] - a[2*0+2]*bn[2*0+2];
@@ -105,13 +102,14 @@ void FastResponse::convolve(double *a,double *bn,double *cn) {
     for(int n=0; n<N; n++) {
         cn[2*n+1] = out[n][0] / N;
         cn[2*n+2] = out[n][1] / N;
-    }    
+    }
 }
 
-void FastResponse::Response(double f0,double fdot,double theta,double phi,double A,double iota,double psi,double phio,
+void FastResponse::Response(double f,double fdot,double theta,double phi,double A,double iota,double psi,double phio,
                             double *XLS,long XLSlen,double *XSL,long XSLlen,
                             double *YLS,long YLSlen,double *YSL,long YSLlen,
-                            double *ZLS,long ZLSlen,double *ZSL,long ZSLlen)
+                            double *ZLS,long ZLSlen,double *ZSL,long ZSLlen,
+                            int method=0)
 {
     // Calculate cos and sin of sky position, inclination, polarization
     double costh = cos(theta);   double sinth = sin(theta);
@@ -123,6 +121,9 @@ void FastResponse::Response(double f0,double fdot,double theta,double phi,double
     double Aplus  = A*(1.+cosi*cosi);
     double Across = -2.0*A*cosi;
 
+    // with the new computing method, shift the central frequency to its half-evolved value
+    double f0 = (method == 0) ? f : (f + 0.5 * fdot * T);
+    
     // Calculate carrier frequency bin
     long q = (long)(f0*T);
 
@@ -131,8 +132,8 @@ void FastResponse::Response(double f0,double fdot,double theta,double phi,double
     double DPi = -Across*sinps;
     double DCr = -Aplus*sinps;
     double DCi = -Across*cosps;
-		       
-	/* Tensor stuff */
+    
+    /* Tensor stuff */
     u[1] =  costh*cosph;  u[2] =  costh*sinph;    u[3] = -sinth;
     v[1] =  sinph;        v[2] = -cosph;          v[3] =  0.0;
     k[1] = -sinth*cosph;  k[2] = -sinth*sinph;    k[3] = -costh;
@@ -140,33 +141,37 @@ void FastResponse::Response(double f0,double fdot,double theta,double phi,double
     for(int i=1; i<=3; i++) {
         for(int j=1; j<=3; j++) {
             eplus[i][j]  = u[i]*u[j] - v[i]*v[j];
-	        ecross[i][j] = u[i]*v[j] + v[i]*u[j];
-      	}
+            ecross[i][j] = u[i]*v[j] + v[i]*u[j];
+        }
     }
 
-    /* Analytical Fourier transform of high frequency components */
+    /* Analytical Fourier transform of high frequency components.
+       TO DO: replace this and the FFT with the time-domain evaluation of the "slow" exponential. */
     for(int i=1; i<=M; i++) {
         int m = q + i-1 - M/2;
-        double xm = pi*(f0*T - (double)m);    // TODO: whence pi?
+        double xm = pi*(f0*T - (double)m);
         double sinc = (xm != 0.0) ? (sin(xm) / xm) : 1.0;
 
         b[2*i-1] = cos(xm) * sinc;
         b[2*i]   = sin(xm) * sinc;
     }
 
-    // TO DO:   it should be possible to cache the spacecraft position, vectors, etc.
-    //          are they really computed for every single output time? what is N?
+    // this B transform needs to be done only once
+    for(int n=0; n<N; n++) { in[n][0] = b[2*n+1]; in[n][1] = b[2*n+2]; }    
+    fftw_execute(plan_forward);
+    for(int n=0; n<N; n++) { b[2*n+1] = out[n][0]; b[2*n+2] = out[n][1]; }
+
+    // TO DO: cache the spacecraft position vectors
     for(int n=1; n<=N; n++) {
         double t = T * (double)(n-1) / (double)N;
-	      
+          
         // Calculate position of each spacecraft at time t
         spacecraft(t);
 
         for(int i=1; i<=3; i++)  {
-	        kdotx[i] = (x[i]*k[1]+y[i]*k[2]+z[i]*k[3])/clight;
+            kdotx[i] = (x[i]*k[1]+y[i]*k[2]+z[i]*k[3])/clight;
             xi[i]    = t - kdotx[i];
-            f[i]     = f0 + fdot*xi[i];
-            fonfs[i] = f[i] / fstar;        // TODO: whence fstar?
+            fonfs[i] = (f + fdot*xi[i]) / fstar;    // works with both methods
         }
 
         // Unit separation vector from spacecrafts i to j
@@ -179,20 +184,20 @@ void FastResponse::Response(double f0,double fdot,double theta,double phi,double
             r21[i] = -r12[i];
             r31[i] = -r13[i];
             r32[i] = -r23[i];
-	    }
-	    
-	    // TO DO: is this needed?
+        }
+        
+        // TO DO: is this needed?
         dplus[1][2]  = dplus[1][3]  = dplus[2][1]  = dplus[2][3]  = dplus[3][1]  = dplus[3][2]  = 0.0;
         dcross[1][2] = dcross[1][3] = dcross[2][1] = dcross[2][3] = dcross[3][1] = dcross[3][2] = 0.0;
       
         // Convenient quantities d+ & dx
         for(int i=1; i<=3; i++) {
-	        for(int j=1; j<=3; j++) {
+            for(int j=1; j<=3; j++) {
                 dplus[1][2]  += r12[i]*r12[j]*eplus[i][j];   dcross[1][2] += r12[i]*r12[j]*ecross[i][j];
                 dplus[2][3]  += r23[i]*r23[j]*eplus[i][j];   dcross[2][3] += r23[i]*r23[j]*ecross[i][j];
                 dplus[1][3]  += r13[i]*r13[j]*eplus[i][j];   dcross[1][3] += r13[i]*r13[j]*ecross[i][j];
-	        }
-	    }
+            }
+        }
       
         dplus[2][1] = dplus[1][2];  dcross[2][1] = dcross[1][2];
         dplus[3][2] = dplus[2][3];  dcross[3][2] = dcross[2][3];
@@ -211,7 +216,10 @@ void FastResponse::Response(double f0,double fdot,double theta,double phi,double
             for(int j=1; j<=3; j++) {
                 if(i!=j) {
                     double arg1 = 0.5*fonfs[i]*(1 - kdotr[i][j]);
+                    
+                    // first term is phase evolution from fdot; second term is initial phase; third term is Doppler                    
                     double arg2 = pi*fdot*xi[i]*xi[i] + phio - 2.*pi*kdotx[i]*f0;
+                    arg2 += (method == 0) ? 0 : -pi*T*fdot*xi[i];   // additional contribution from recentering f0
                     
                     double sinc = (arg1 != 0.0) ? (sin(arg1) / arg1) : 1.0;
                     
@@ -220,33 +228,28 @@ void FastResponse::Response(double f0,double fdot,double theta,double phi,double
 
                     double tran2r = cos(arg1 + arg2);
                     double tran2i = sin(arg1 + arg2);    
-		  
-		            // Real & Imaginary part of the slowly evolving signal
-		            TR[i][j] = 0.25*sinc*(tran1r*tran2r - tran1i*tran2i);
-		            TI[i][j] = 0.25*sinc*(tran1r*tran2i + tran1i*tran2r);
-		        }
-	        }
-	    }
+          
+                    // Real & Imaginary part of the slowly evolving signal
+                    TR[i][j] = 0.25*sinc*(tran1r*tran2r - tran1i*tran2i);
+                    TI[i][j] = 0.25*sinc*(tran1r*tran2i + tran1i*tran2r);
+                }
+            }
+        }
     
         data12[2*n-1] = TR[1][2];   data21[2*n-1] = TR[2][1];   data31[2*n-1] = TR[3][1];   
         data12[2*n]   = TI[1][2];   data21[2*n]   = TI[2][1];   data31[2*n]   = TI[3][1];
         data13[2*n-1] = TR[1][3];   data23[2*n-1] = TR[2][3];   data32[2*n-1] = TR[3][2];
         data13[2*n]   = TI[1][3];   data23[2*n]   = TI[2][3];   data32[2*n]   = TI[3][2];
     }
-        
-    // this B transform needs to be done only once
-    for(int n=0; n<N; n++) { in[n][0] = b[2*n+1]; in[n][1] = b[2*n+2]; }    
-    fftw_execute(plan_forward);
-    for(int n=0; n<N; n++) { b[2*n+1] = out[n][0]; b[2*n+2] = out[n][1]; }
     
     // TO DO: these could be multithreaded, but we'll need more FFTW plans
-    convolve(data12, b, c12);  convolve(data21, b, c21);  convolve(data31, b, c31);
-    convolve(data13, b, c13);  convolve(data23, b, c23);  convolve(data32, b, c32);
+    convolve(data12,b,c12,method);  convolve(data21,b,c21,method);  convolve(data31,b,c31,method);
+    convolve(data13,b,c13,method);  convolve(data23,b,c23,method);  convolve(data32,b,c32,method);
 
-    // Renormalize so that the time series is real
+    // Renormalize so that the time series is real (could do it within convolve I suppose)
     for(int i=1; i<=2*M; i++) {
-        d[1][2][i] = 0.5*c12[i];  d[2][1][i] = 0.5*c21[i];  d[3][1][i] = 0.5*c31[i];
-        d[1][3][i] = 0.5*c13[i];  d[2][3][i] = 0.5*c23[i];  d[3][2][i] = 0.5*c32[i];
+        c12[i] = 0.5*c12[i];  c21[i] = 0.5*c21[i];  c31[i] = 0.5*c31[i];
+        c13[i] = 0.5*c13[i];  c23[i] = 0.5*c23[i];  c32[i] = 0.5*c32[i];
     }
     
     /* Call subroutines for synthesizing different TDI data channels */
@@ -307,50 +310,50 @@ void FastResponse::XYZ(double f0, long q, double *XLS, double *XSL, double *YLS,
         double c3 = cos(3.0*fonfs);  double c2 = cos(2.0*fonfs);  double c1 = cos(1.0*fonfs);
         double s3 = sin(3.0*fonfs);  double s2 = sin(2.0*fonfs);  double s1 = sin(1.0*fonfs);
 
-        X[2*i-1] = (d[1][2][2*i-1] - d[1][3][2*i-1])*c3 + (d[1][2][2*i]   - d[1][3][2*i]) * s3 +
-                   (d[2][1][2*i-1] - d[3][1][2*i-1])*c2 + (d[2][1][2*i]   - d[3][1][2*i]) * s2 +
-                   (d[1][3][2*i-1] - d[1][2][2*i-1])*c1 + (d[1][3][2*i]   - d[1][2][2*i]) * s1 +
-                   (d[3][1][2*i-1] - d[2][1][2*i-1]);
+        X[2*i-1] = (c12[2*i-1] - c13[2*i-1])*c3 + (c12[2*i]   - c13[2*i]) * s3 +
+                   (c21[2*i-1] - c31[2*i-1])*c2 + (c21[2*i]   - c31[2*i]) * s2 +
+                   (c13[2*i-1] - c12[2*i-1])*c1 + (c13[2*i]   - c12[2*i]) * s1 +
+                   (c31[2*i-1] - c21[2*i-1]);
              
-        X[2*i]   = (d[1][2][2*i]   - d[1][3][2*i]) * c3 - (d[1][2][2*i-1] - d[1][3][2*i-1])*s3 +
-                   (d[2][1][2*i]   - d[3][1][2*i]) * c2 - (d[2][1][2*i-1] - d[3][1][2*i-1])*s2 +
-                   (d[1][3][2*i]   - d[1][2][2*i]) * c1 - (d[1][3][2*i-1] - d[1][2][2*i-1])*s1 +
-                   (d[3][1][2*i]   - d[2][1][2*i]);
+        X[2*i]   = (c12[2*i]   - c13[2*i]) * c3 - (c12[2*i-1] - c13[2*i-1])*s3 +
+                   (c21[2*i]   - c31[2*i]) * c2 - (c21[2*i-1] - c31[2*i-1])*s2 +
+                   (c13[2*i]   - c12[2*i]) * c1 - (c13[2*i-1] - c12[2*i-1])*s1 +
+                   (c31[2*i]   - c21[2*i]);
     
     
-        Y[2*i-1] = (d[2][3][2*i-1] - d[2][1][2*i-1])*c3 + (d[2][3][2*i]   - d[2][1][2*i]) * s3 +
-                   (d[3][2][2*i-1] - d[1][2][2*i-1])*c2 + (d[3][2][2*i]   - d[1][2][2*i]) * s2 +
-                   (d[2][1][2*i-1] - d[2][3][2*i-1])*c1 + (d[2][1][2*i]   - d[2][3][2*i]) * s1 +
-                   (d[1][2][2*i-1] - d[3][2][2*i-1]);
+        Y[2*i-1] = (c23[2*i-1] - c21[2*i-1])*c3 + (c23[2*i]   - c21[2*i]) * s3 +
+                   (c32[2*i-1] - c12[2*i-1])*c2 + (c32[2*i]   - c12[2*i]) * s2 +
+                   (c21[2*i-1] - c23[2*i-1])*c1 + (c21[2*i]   - c23[2*i]) * s1 +
+                   (c12[2*i-1] - c32[2*i-1]);
                  
-        Y[2*i]   = (d[2][3][2*i]   - d[2][1][2*i]) * c3 - (d[2][3][2*i-1] - d[2][1][2*i-1])*s3 +
-                   (d[3][2][2*i]   - d[1][2][2*i]) * c2 - (d[3][2][2*i-1] - d[1][2][2*i-1])*s2 +
-                   (d[2][1][2*i]   - d[2][3][2*i]) * c1 - (d[2][1][2*i-1] - d[2][3][2*i-1])*s1 +
-                   (d[1][2][2*i]   - d[3][2][2*i]);
+        Y[2*i]   = (c23[2*i]   - c21[2*i]) * c3 - (c23[2*i-1] - c21[2*i-1])*s3 +
+                   (c32[2*i]   - c12[2*i]) * c2 - (c32[2*i-1] - c12[2*i-1])*s2 +
+                   (c21[2*i]   - c23[2*i]) * c1 - (c21[2*i-1] - c23[2*i-1])*s1 +
+                   (c12[2*i]   - c32[2*i]);
     
          
-        Z[2*i-1] = (d[3][1][2*i-1] - d[3][2][2*i-1])*c3 + (d[3][1][2*i]   - d[3][2][2*i]) * s3 +
-                   (d[1][3][2*i-1] - d[2][3][2*i-1])*c2 + (d[1][3][2*i]   - d[2][3][2*i]) * s2 +
-                   (d[3][2][2*i-1] - d[3][1][2*i-1])*c1 + (d[3][2][2*i]   - d[3][1][2*i]) * s1 +
-                   (d[2][3][2*i-1] - d[1][3][2*i-1]);
+        Z[2*i-1] = (c31[2*i-1] - c32[2*i-1])*c3 + (c31[2*i]   - c32[2*i]) * s3 +
+                   (c13[2*i-1] - c23[2*i-1])*c2 + (c13[2*i]   - c23[2*i]) * s2 +
+                   (c32[2*i-1] - c31[2*i-1])*c1 + (c32[2*i]   - c31[2*i]) * s1 +
+                   (c23[2*i-1] - c13[2*i-1]);
                  
-        Z[2*i]   = (d[3][1][2*i]   - d[3][2][2*i]) * c3 - (d[3][1][2*i-1] - d[3][2][2*i-1])*s3 +
-                   (d[1][3][2*i]   - d[2][3][2*i]) * c2 - (d[1][3][2*i-1] - d[2][3][2*i-1])*s2 +
-                   (d[3][2][2*i]   - d[3][1][2*i]) * c1 - (d[3][2][2*i-1] - d[3][1][2*i-1])*s1 +
-                   (d[2][3][2*i]   - d[1][3][2*i]);
+        Z[2*i]   = (c31[2*i]   - c32[2*i]) * c3 - (c31[2*i-1] - c32[2*i-1])*s3 +
+                   (c13[2*i]   - c23[2*i]) * c2 - (c13[2*i-1] - c23[2*i-1])*s2 +
+                   (c32[2*i]   - c31[2*i]) * c1 - (c32[2*i-1] - c31[2*i-1])*s1 +
+                   (c23[2*i]   - c13[2*i]);
 
-        XSL[2*i-1] =  2.0*fonfs*(X[2*i-1]*cSL-X[2*i]*sSL);
-        XSL[2*i]   = -2.0*fonfs*(X[2*i-1]*sSL+X[2*i]*cSL);
-        YSL[2*i-1] =  2.0*fonfs*(Y[2*i-1]*cSL-Y[2*i]*sSL);
-        YSL[2*i]   = -2.0*fonfs*(Y[2*i-1]*sSL+Y[2*i]*cSL);
-        ZSL[2*i-1] =  2.0*fonfs*(Z[2*i-1]*cSL-Z[2*i]*sSL);
-        ZSL[2*i]   = -2.0*fonfs*(Z[2*i-1]*sSL+Z[2*i]*cSL);
+        XSL[2*i-1] = 2.0*fonfs*(X[2*i-1]*cSL-X[2*i]*sSL);
+        XSL[2*i]   = 2.0*fonfs*(X[2*i-1]*sSL+X[2*i]*cSL);
+        YSL[2*i-1] = 2.0*fonfs*(Y[2*i-1]*cSL-Y[2*i]*sSL);
+        YSL[2*i]   = 2.0*fonfs*(Y[2*i-1]*sSL+Y[2*i]*cSL);
+        ZSL[2*i-1] = 2.0*fonfs*(Z[2*i-1]*cSL-Z[2*i]*sSL);
+        ZSL[2*i]   = 2.0*fonfs*(Z[2*i-1]*sSL+Z[2*i]*cSL);
 
-        XLS[2*i-1] =  (X[2*i-1]*cLS - X[2*i]*sLS);
-        XLS[2*i]   = -(X[2*i-1]*sLS + X[2*i]*cLS);
-        YLS[2*i-1] =  (Y[2*i-1]*cLS - Y[2*i]*sLS);
-        YLS[2*i]   = -(Y[2*i-1]*sLS + Y[2*i]*cLS);
-        ZLS[2*i-1] =  (Z[2*i-1]*cLS - Z[2*i]*sLS);
-        ZLS[2*i]   = -(Z[2*i-1]*sLS + Z[2*i]*cLS);
+        XLS[2*i-1] = (X[2*i-1]*cLS - X[2*i]*sLS);
+        XLS[2*i]   = (X[2*i-1]*sLS + X[2*i]*cLS);
+        YLS[2*i-1] = (Y[2*i-1]*cLS - Y[2*i]*sLS);
+        YLS[2*i]   = (Y[2*i-1]*sLS + Y[2*i]*cLS);
+        ZLS[2*i-1] = (Z[2*i-1]*cLS - Z[2*i]*sLS);
+        ZLS[2*i]   = (Z[2*i-1]*sLS + Z[2*i]*cLS);
     }
 }
