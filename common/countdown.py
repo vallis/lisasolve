@@ -30,8 +30,11 @@ class countdown(object):
         speed      = self.items / (t - self.t0)
         localspeed = (self.items - self.ilast) / (t - self.tlast)
         
-        eta      = (self.total - self.items) / speed
-        localeta = (self.total - self.items) / localspeed
+        if self.total != 0:
+            eta      = (self.total - self.items) / speed
+            localeta = (self.total - self.items) / localspeed
+        else:
+            eta, localeta = 0, 0
         
         self.tlast = t
         self.ilast = self.items
@@ -45,8 +48,8 @@ class countdown(object):
     def end(self,status=None):
         t = time.time()
         
-        speed = self.total / (t - self.t0)
+        speed = self.items / (t - self.t0)
         
-        print self.pad("\r%d finished, %d s elapsed (%d/s)%s" % (self.total,t - self.t0,speed,", " + status if status else ""))
+        print self.pad("\r%d finished, %d s elapsed (%d/s)%s" % (self.items,t - self.t0,speed,", " + status if status else ""))
         sys.stdout.flush()
     
