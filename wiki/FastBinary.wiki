@@ -1,6 +1,6 @@
 #summary Using fastsource/fastbinary to generate Galactic binary TDI waveforms.
 
-= Fast waveform generators: fastsource/FastBinary =
+= Fast waveform generators: fastsource/!FastBinary =
 
 == Installation ==
 
