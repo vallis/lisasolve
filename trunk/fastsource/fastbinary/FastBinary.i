@@ -26,15 +26,16 @@
 // and here we can add some Python to the interface code
 
 %pythoncode %{
-import lisaxml
-# import lisaxml2 as lisaxml
+import sys, math, time
+
+if 'lisaxml2' in sys.modules:
+	import lisaxml2 as lisaxml
+else:
+	import lisaxml
 
 import numpy
 import FrequencyArray
 from countdown import countdown
-import math
-import time
-import sys
 
 lisaxml.SourceClassModules['FastGalacticBinary'] = 'FastBinary'
 
@@ -67,10 +68,9 @@ class FastGalacticBinary(lisaxml.Source):
                 elif par[2] != None:
                     setattr(self,par[0],par[2])
     
-    # TO DO: need to fix MPI calculation for kmin != 0, length != None
-    def fourier(self,simulator='synthlisa',table=None,T=6.2914560e7,dt=15,mpi=False,kmin=0,length=None,status=True):
+    def fourier(self,simulator='synthlisa',table=None,T=6.2914560e7,dt=15,algorithm='mldc',oversample=1,kmin=0,length=None,mpi=False,status=True):
         if table == None:
-            return self.onefourier(simulator,T=T,dt=dt,kmin=kmin,length=length)
+            return self.onefourier(simulator=simulator,T=T,dt=dt,algorithm=algorithm,oversample=oversample)
         elif mpi == False:
             if length == None:
                 length = int(T/dt)/2 + 1    # was "NFFT = int(T/dt)", and "NFFT/2+1" passed to numpy.zeros
@@ -79,7 +79,7 @@ class FastGalacticBinary(lisaxml.Source):
             
             if status: c = countdown(len(table),10000)
             for line in table:
-                self.onefourier(simulator,vector=line,buffer=buf,T=T,dt=dt)                
+                self.onefourier(simulator=simulator,vector=line,buffer=buf,T=T,dt=dt,algorithm=algorithm,oversample=oversample)                
                 if status: c.status()
             if status: c.end()
             
@@ -125,9 +125,11 @@ class FastGalacticBinary(lisaxml.Source):
             for r in recv_reqs: r.Free()
             for r in send_reqs: r.Free()
             
-            NFFT = int(T/dt)
-            buf = tuple(FrequencyArray.FrequencyArray(numpy.zeros(NFFT/2+1,dtype=numpy.complex128),kmin=0,df=1.0/T) for i in range(3))
-            rbuf = numpy.zeros(NFFT/2+1,dtype=numpy.complex128)
+            if length == None:
+                length = int(T/dt)/2 + 1
+            
+            buf = tuple(FrequencyArray.FrequencyArray(numpy.zeros(length,dtype=numpy.complex128),kmin=kmin,df=1.0/T) for i in range(3))
+            rbuf = numpy.zeros(length,dtype=numpy.complex128)
             
             for s in range(slaves):
                 for i in range(3):
@@ -143,11 +145,13 @@ class FastGalacticBinary(lisaxml.Source):
     year = 3.15581498e7
     fstar = 0.00954269032
     
-    def slave(self,simulator='synthlisa',T=6.2914560e7,dt=15):
+    def slave(self,simulator='synthlisa',T=6.2914560e7,dt=15,algorithm='mldc',oversample=1,kmin=0,length=None):
         from mpi4py import MPI
         
-        NFFT = int(T/dt)
-        buf = tuple(FrequencyArray.FrequencyArray(numpy.zeros(NFFT/2+1,dtype=numpy.complex128),kmin=0,df=1.0/T) for i in range(3))
+        if length == None:
+            length = int(T/dt)/2 + 1
+        
+        buf = tuple(FrequencyArray.FrequencyArray(numpy.zeros(length,dtype=numpy.complex128),kmin=kmin,df=1.0/T) for i in range(3))
         
         recv_buf, send_buf = numpy.zeros(8,'d'), numpy.zeros(1,'d')
         recv_req, send_req = MPI.COMM_WORLD.Recv_init((recv_buf, MPI.DOUBLE), 0, 0), MPI.COMM_WORLD.Send_init((send_buf, MPI.DOUBLE), 0, 1)
@@ -159,7 +163,7 @@ class FastGalacticBinary(lisaxml.Source):
             if recv_buf[0] == 0.0:
                 break
             else:
-                self.onefourier(simulator,vector=recv_buf,buffer=buf,T=T,dt=dt)
+                self.onefourier(simulator,vector=recv_buf,buffer=buf,T=T,dt=dt,algorithm=algorithm,oversample=oversample)
                 send_req.Start()
         
         recv_req.Free(); send_req.Free()
@@ -170,8 +174,8 @@ class FastGalacticBinary(lisaxml.Source):
         # for i in range(3):
         #     MPI.COMM_WORLD.Reduce((buf[i],MPI.DOUBLE_COMPLEX),None,MPI.SUM,0)
     
-    def buffersize(self,T,f,fdot,A,algorithm='legacy'):
-        if algorithm == 'legacy':
+    def buffersize(self,T,f,fdot,A,algorithm='mldc',oversample=1):
+        if algorithm == 'legacy' or algorithm == 'mldc':
             # bins are smaller for multiple years
             if T/self.year <= 1.0:
                 mult = 1
@@ -195,6 +199,18 @@ class FastGalacticBinary(lisaxml.Source):
             else:
                 N = 32*mult
             
+            # new logic for high-frequency chirping binaries (r1164 lisatools:Fast_Response.c)
+            if algorithm == 'mldc':
+                try:
+                    chirp = int(math.pow(2.0,math.ceil(math.log(fdot*T*T)/math.log(2.0))))
+                except ValueError:
+                    chirp = 0
+                
+                if chirp > N:
+                    N = 2*chirp
+                elif 4*chirp > N:
+                    N = N * 2
+            
             # TDI noise, normalized by TDI response function
             Sm = AEnoise(f) / (4.0 * math.sin(f/self.fstar) * math.sin(f/self.fstar))
             
@@ -208,7 +224,13 @@ class FastGalacticBinary(lisaxml.Source):
             
             # corrected per Neil's 2009-07-28 changes to Fast_Response3.c
             # use the larger of the two buffer sizes, but not above 8192
-            M = N = min(8192,max(M,N))
+            # -- further changed for new chirping logic (r1164)
+            if algorithm == 'mldc':
+                M = N = max(M,N)
+            else:
+                M = N = min(8192,max(M,N))
+            
+            # new logic for high-frequency chirping binaries (r1164 Fast_Response.c)
         else:
             # LISA response bandwidth for Doppler v/c = 1e-4 on both sides, and frequency evolution
             deltaf = fdot * T + 2.0e-4 * f
@@ -232,13 +254,15 @@ class FastGalacticBinary(lisaxml.Source):
             
             M = N = max(M,N)
         
+        M *= oversample; N *= oversample
+        
         return M,N
     
-    def onefourier(self,simulator='synthlisa',vector=None,buffer=None,T=6.2914560e7,dt=15,algorithm='legacy'):
+    def onefourier(self,simulator='synthlisa',vector=None,buffer=None,T=6.2914560e7,dt=15,algorithm='mldc',oversample=1):
         if vector != None:
             self.Frequency,self.FrequencyDerivative,self.Amplitude = vector[0],vector[1],vector[4]
         
-        M, N = self.buffersize(T,self.Frequency,self.FrequencyDerivative,self.Amplitude,algorithm)
+        M, N = self.buffersize(T,self.Frequency,self.FrequencyDerivative,self.Amplitude,algorithm,oversample)
         
         # cache FastResponse objects
         if (N,T,dt) not in FastGalacticBinary.FastBinaryCache:
@@ -288,8 +312,8 @@ class FastGalacticBinary(lisaxml.Source):
                 buffer[i][begb:endb] += a[bega:enda:2] + 1j * a[(bega+1):enda:2]
     
     # total observation time is hardcoded to 2^22 * 15 seconds
-    def TDI(self,T=6.2914560e7,dt=15.0,simulator='synthlisa',table=None):
-        X, Y, Z = self.fourier(simulator,table,T=T,dt=dt)
+    def TDI(self,T=6.2914560e7,dt=15.0,simulator='synthlisa',table=None,algorithm='mldc',oversample=1):
+        X, Y, Z = self.fourier(simulator,table,T=T,dt=dt,algorithm=algorithm,oversample=oversample)
         
         return X.ifft(dt), Y.ifft(dt), Z.ifft(dt)
     

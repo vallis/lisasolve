@@ -171,7 +171,7 @@ void FastResponse::Response(double f,double fdot,double theta,double phi,double 
         for(int i=1; i<=3; i++)  {
             kdotx[i] = (x[i]*k[1]+y[i]*k[2]+z[i]*k[3])/clight;
             xi[i]    = t - kdotx[i];
-            fonfs[i] = (f + fdot*xi[i]) / fstar;    // works with both methods
+            fonfs[i] = (f + fdot*xi[i]) / fstar;    // works with both methods...
         }
 
         // Unit separation vector from spacecrafts i to j
