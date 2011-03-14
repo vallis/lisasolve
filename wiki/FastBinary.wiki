@@ -4,10 +4,10 @@
 
 == Installation ==
 
-  * Prerequisites: numpy and lisatools (only lisatools/lisaXML/io-python, really).
+  * Prerequisites: numpy, lisatools (only lisatools/lisaXML/io-python, really), FFTW-3.
   * Get the lisasolve svn from lisasolve.googlecode.com. Or update to the latest if you have it already.
   * Go into lisasolve/common, and run `python setup.py install` (or `python setup.py install --prefix=...` if you've been using a user Python library directory).
-  * Do the same in lisasolve/fastsource/fastbinary.
+  * Do the same in lisasolve/fastsource/fastbinary. If FFTW is not accessible in a system-wide location, pass its root directory to setup as --with-fftw=XXX (i.e., if the FFTW-3 files are in XXX/lib and XXX/include, pass XXX). 
 
 == Usage ==
 
