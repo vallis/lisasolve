@@ -14,8 +14,8 @@
 
   * Currently `TDIf` objects can be added and subtracted, which will thread these operations over A, E, and T. In addition, the following operations are supported (where `t1` and `t2` are both `TDIf` objects:
 {{{
-t1.normsq()  # the noise-weighted inner product of t1 with itself;
-             # LISA noise PSDs are computed automatically over the required frequency range
+t1.normsq()      # the noise-weighted inner product of t1 with itself;
+                 # LISA noise PSDs are computed automatically over the required frequency range
 
 t1.normsq(noisepsd=(Sa,Se,St))  # noise-weighted inner product with the given PSDs;
                                 # these need to be arrays with the same length and offset as t1
