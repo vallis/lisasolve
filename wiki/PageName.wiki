@@ -1,4 +1,4 @@
-#summary Using MultiNest from Python.
+#summary Using !MultiNest from Python.
 
 = Python multinest bridge: multinest =
 
@@ -9,7 +9,7 @@
     * You may have to reinstall numpy once the Fortran is in (for the sake of f2py).
     * A Fortran-aware MPI installation (e.g., Open MPI from http://www.open-mpi.org); the Open MPI shipped with OS X is not.
     * mpi4py from http://mpi4py.scipy.org.
-  * The current svn version of the bridge includes the core MultiNest 2.8 files (from http://ccpforge.cse.rl.ac.uk/gf/project/multinest/), plus patched versions of `nested.F90` (which becomes `pynested.F90`), `Makefile`, and the f2py wrapper `nested.pyf`.
+  * The current svn version of the bridge includes the core !MultiNest 2.8 files (from http://ccpforge.cse.rl.ac.uk/gf/project/multinest/), plus patched versions of `nested.F90` (which becomes `pynested.F90`), `Makefile`, and the f2py wrapper `nested.pyf`.
 
 == Usage ==
 
@@ -17,4 +17,5 @@
     * `cube` will be a Python list containing the `ndim` search parameters, rescaled to [0,1]; 
     * the function needs to set them (in place) to their physical values (implementing priors with nonlinear transformations if needed);
     * note that `len(cube)` may be larger than `ndim`; this allows returning "nonphysical" parameters that are not used in the search, but reported in output.
-  * We then call MultiNest executable using `pymultinest.nested.nestRun`. Parameters are explained in the MultiNest `readme.txt` and in `example_eggbox.py`.
+  * We then call the !MultiNest executable using `pymultinest.nested.nestRun`. Parameters are explained in the !MultiNest `readme.txt` and in `example_eggbox.py`. Remember to have an empty directory `chains` on hand.
+  * With Open MPI, the parallel call would be something like `mpiexec -np 4 python example_eggbox.py`.
