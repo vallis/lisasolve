@@ -1,0 +1,41 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module pymultinest ! in 
+    interface  ! in :pymultinest
+        module nested ! in :pymultinest:pynested.F90
+            subroutine nestRun(nest_mmodal,nest_ceff,nest_nlive,nest_tol,nest_ef,nest_ndims,nest_totPar,nest_nCdims,maxClst,nest_updInt,nest_Ztol,nest_root,seed,nest_pWrap,nest_fb,nest_resume,loglike,context) ! in :pymultinest:pynested.F90:nested
+                logical :: nest_mmodal
+				logical :: nest_ceff
+                integer :: nest_nlive
+                double precision :: nest_tol
+                double precision :: nest_ef
+                integer :: nest_ndims
+                integer :: nest_totpar
+                integer :: nest_ncdims
+                integer :: maxclst
+                integer :: nest_updint
+                double precision :: nest_ztol
+                character(len=100) :: nest_root
+                integer :: seed
+                integer :: nest_pWrap(*)
+                logical :: nest_fb
+                logical :: nest_resume
+                external loglike
+                integer :: context
+                interface ! in :pymultinest:pynested.F90:nested:nestRun
+                    subroutine loglike(Cube,n_dim,npar,lnew,context_pass) ! in :pymultinest:pynested.F90:nested:nestRun:unknown_interface
+                        double precision dimension(npar) :: Cube
+                        integer :: n_dim
+                        integer :: npar=len(Cube)
+                        double precision intent(out) :: lnew
+                        integer :: context_pass
+                    end subroutine loglike
+                end interface 
+            end subroutine nestRun
+        end module nested
+    end interface 
+end python module pymultinest
+
+! This file was auto-generated with f2py (version:2_5585), edited by MV 090630, 110328
+! See http://cens.ioc.ee/projects/f2py2e/
