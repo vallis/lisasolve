@@ -1,4 +1,4 @@
-#summary Using !MultiNest from Python.
+#summary Using MultiNest from Python.
 
 = Python multinest bridge: multinest =
 
