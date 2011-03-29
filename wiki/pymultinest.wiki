@@ -1,6 +1,6 @@
 #summary Using MultiNest from Python.
 
-= Python multinest bridge: multinest =
+= Python multinest bridge: pymultinest =
 
 == Installation ==
 
@@ -10,6 +10,7 @@
     * A Fortran-aware MPI installation (e.g., Open MPI from http://www.open-mpi.org); the Open MPI shipped with OS X is not.
     * mpi4py from http://mpi4py.scipy.org.
   * The current svn version of the bridge includes the core !MultiNest 2.8 files (from http://ccpforge.cse.rl.ac.uk/gf/project/multinest/), plus patched versions of `nested.F90` (which becomes `pynested.F90`), `Makefile`, and the f2py wrapper `nested.pyf`.
+  * Then run `make pymultinest.so` in `lisasolve/multinest`. Some changes will be needed in the makefile for other OSes and architectures; please e-mail me and I'll try to help you (and augment the SVN)
 
 == Usage ==
 
@@ -19,3 +20,5 @@
     * note that `len(cube)` may be larger than `ndim`; this allows returning "nonphysical" parameters that are not used in the search, but reported in output.
   * We then call the !MultiNest executable using `pymultinest.nested.nestRun`. Parameters are explained in the !MultiNest `readme.txt` and in `example_eggbox.py`. Remember to have an empty directory `chains` on hand.
   * With Open MPI, the parallel call would be something like `mpiexec -np 4 python example_eggbox.py`.
+
+Michele, 3/28/2011
