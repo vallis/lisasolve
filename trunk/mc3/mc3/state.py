@@ -1,8 +1,7 @@
 import math, operator
-
 import numpy as N
 
-# would be fun to use metaprogramming to have model-specific states
+# would be fun to use metaprogramming to have model-specific states - indeed
 class state(dict):
     def __init__(self,model,init=None):
         """Initialize a state for the given model; accepts a tuple, list,

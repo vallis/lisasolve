@@ -32,7 +32,7 @@ class TDIf(object):
         
         return self
     
-
+    
     # TO DO: memoize the properties?    
     @property
     def Sae(self):

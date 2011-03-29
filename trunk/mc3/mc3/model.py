@@ -124,6 +124,24 @@ class latitudeangle(uniform):
     
     def random(self):
         return math.asin(random.uniform(-1.0,1.0))
+
+
+class sphericalradius(uniform):
+    """Represents a spherical radius between rmin and rmax."""
+    
+    def __init__(self,parname,rmin=0,rmax=1):
+        uniform.__init__(self,parname,rmin,rmax,periodic=False)
+        
+        self.norm = (4.0/3.0) * math.pi * (self.xmax**3 - self.xmin**3)
+    
+    def prior(self,value):
+        if self.xmin <= value <= self.xmax:
+            return 4.0 * math.pi * value**2 / self.norm
+        else:
+            return 0
+    
+    def random(self):
+        return (self.xmin**3 + (self.xmax**3 - self.xmin**3) * random.uniform(0,1.0))**(1.0/3.0)
     
 
 
