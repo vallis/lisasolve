@@ -27,6 +27,10 @@ class flow(object):
         
         self.makerules[target] = (sources,command)
     
+    def mkdir(self,directory):
+        if not os.path.isdir(self.w(directory)):
+            os.mkdir(self.w(directory))
+    
     def make(self,target=None):
         if target == None:
             for t in self.makerules:
