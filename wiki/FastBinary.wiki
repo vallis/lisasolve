@@ -11,6 +11,8 @@
 
 == Usage ==
 
+  * Quickstart: see the [http://code.google.com/p/lisasolve/source/browse/trunk/fastsource/fastbinary/examples/test-fastbinary.py test-fastbinary.py] example script.
+
   * To make a single binary, create a new `FastBinary.FastGalacticBinary` object:
 {{{
 >>> fastbin = FastBinary.FastGalacticBinary()
