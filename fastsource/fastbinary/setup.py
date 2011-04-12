@@ -7,7 +7,7 @@ author      = 'Michele Vallisneri, based on work by Neil Cornish and others'
 email       = 'vallis@vallis.org'
 url         = 'http://lisasolve.googlecode.com'
 
-csourcefiles = ['FastBinary.cpp','AEnoise.c','arrays.c']
+csourcefiles = ['FastBinary.cpp','arrays.c']
 sourcefiles  = csourcefiles + ['FastBinary.i']
 headers      = ['FastBinary.h','arrays.h']
 
