@@ -16,14 +16,19 @@ const double kappa = 0.0;           // initial azimuthal position of the guiding
 const double lambda = 0.0;          // initial orientation of the LISA constellation
 const double ec = 0.009648370435;   // eccentricity
 
+const double Sps = 4.0e-22;         // photon shot noise power (Neil's value)
+const double Sacc = 9.0e-30;        // acceleration noise power (Neil's value)
+
 /* #include <complex>
    typedef std::complex<double> cdouble; */
 
 extern "C" {
     #include <fftw3.h>
     
-    double AEnoise(double f);
+    /* double AEnoise(double f); */
 }
+
+double AEnoise(double f);
 
 class FastResponse {
 private:

@@ -229,8 +229,6 @@ class FastGalacticBinary(lisaxml.Source):
                 M = N = max(M,N)
             else:
                 M = N = min(8192,max(M,N))
-            
-            # new logic for high-frequency chirping binaries (r1164 Fast_Response.c)
         else:
             # LISA response bandwidth for Doppler v/c = 1e-4 on both sides, and frequency evolution
             deltaf = fdot * T + 2.0e-4 * f
