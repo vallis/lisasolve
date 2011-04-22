@@ -123,11 +123,14 @@ class FrequencyArray(numpy.ndarray):
         # fall back to simple arrays (may waste memory)
         return numpy.ndarray.__mul__(self,other)
     
-    # in division, we require the arrays to coincide
+    # in division, it's OK if second array is larger, but not if its smaller (which implies division by zero!)
     def __div__(self,other):
-        if isinstance(other,FrequencyArray) and (self.df == other.df) and (self.kmin == other.kmin) and (len(self) == len(other)):
-            ret = numpy.array(self,copy=True)
-            ret /= other[:]
+        if isinstance(other,FrequencyArray) and (self.df == other.df):
+            if (other.kmin > self.kmin) or (other.kmin + len(other) < self.kmin + len(self)):
+                raise ZeroDivisionError
+            else:
+                ret = numpy.array(self,copy=True)
+                ret /= other[(self.kmin - other.kmin):(self.kmin - other.kmin + len(self))]
             
             return FrequencyArray(ret,kmin=self.kmin,df=self.df)
         
