@@ -5,113 +5,62 @@
 extern "C" {
     #include <fftw3.h>
     #include "arrays.h"
-
-    // double AEnoise(double f);
 }
+
+// LISA -- e = L / (2 AU sqrt(3)); fstar = c / (2 pi L)
+double L = 5.0e9;             // armlength
+double fstar = 0.00954269032; // transfer frequency
+double ec = 0.009648370435;   // eccentricity
 
 #include "FastBinary.h"
 
-double AEnoise(double f)
-{
-  // Power spectral density of the detector noise and transfer frequency
-  double Sn, red, confusion_noise;
-  double f1, f2;
-  double A1, A2, slope;
-  
-  red = (2.0*pi*1.0e-4)*(2.0*pi*1.0e-4);
+double AEnoise(double f) {
+	// Power spectral density of the detector noise and transfer frequency
+	double f1, f2, A1, A2, slope, confusion_noise;
 
-  confusion_noise = 0.0;
+	if((f > 1.0e-4) && (f <= 2.5e-4)) {
+		f1 = 1.0e-4; f2 = 2.5e-4; A1 = 1.65e-39; A2 = 2.0e-39;
+	} else if((f > 2.5e-4) && (f <= 4.5e-4)) {
+		f1 = 2.5e-4; f2 = 4.5e-4; A1 = 2.0e-39; A2 = 1.5e-39;
+	} else if((f > 4.5e-4) && (f <= 1.0e-3)) {
+		f1 = 4.5e-4; f2 = 1.0e-3; A1 = 1.5e-39; A2 = 7.0e-40;
+	} else if((f > 1.0e-3) && (f <= 1.5e-3)) {
+		f1 = 1.0e-3; f2 = 1.5e-3; A1 = 7.0e-40; A2 = 3.5e-40;
+	} else if((f > 1.5e-3) && (f <= 2.0e-3)) {
+		f1 = 1.5e-3; f2 = 2.0e-3; A1 = 3.5e-40; A2 = 1.5e-40;
+	} else if((f > 2.0e-3) && (f <= 2.2e-3)) {
+		f1 = 2.0e-3; f2 = 2.2e-3; A1 = 1.5e-40; A2 = 9.2e-41;
+	} else if((f > 2.2e-3) && (f <= 2.3e-3)) {
+		f1 = 2.2e-3; f2 = 2.3e-3; A1 = 9.2e-41; A2 = 4.1e-41;
+	} else if((f > 2.3e-3) && (f <= 2.5e-3)) {
+		f1 = 2.3e-3; f2 = 2.5e-3; A1 = 4.1e-41; A2 = 9.1e-42;
+	} else if((f > 2.5e-3)) {
+		f1 = 2.5e-3; f2 = 3.0e-3; A1 = 9.1e-42; A2 = 5.5e-43;
+	}
 
-  // Calculate the power spectral density of the galactic background at the given frequency
-  if((f > 1.0e-4) && (f <= 2.5e-4))
-    {
-      f1 = 1.0e-4;
-      f2 =  2.5e-4;
-      A1 = 1.65e-39;
-      A2 = 2.0e-39;
-      slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
-     confusion_noise = A1*pow((f/f1),slope);
-    }
-  if((f > 2.5e-4) && (f <= 4.5e-4))
-    {
-      f1 = 2.5e-4;
-      f2 =  4.5e-4;
-      A1 = 2.0e-39;
-      A2 = 1.5e-39;
-      slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
-     confusion_noise = A1*pow((f/f1),slope);
-    }
-  if((f > 4.5e-4) && (f <= 1.0e-3))
-    {
-      f1 = 4.5e-4;
-      f2 =  1.0e-3;
-      A1 = 1.5e-39;
-      A2 = 7.0e-40;
-      slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
-     confusion_noise = A1*pow((f/f1),slope);
-    }
-  if((f > 1.0e-3) && (f <= 1.5e-3))
-    {
-      f1 = 1.0e-3;
-      f2 =  1.5e-3;
-      A1 = 7.0e-40;
-      A2 = 3.5e-40;
-      slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
-     confusion_noise = A1*pow((f/f1),slope);
-    }
-  if((f > 1.5e-3) && (f <= 2.0e-3))
-    {
-      f1 = 1.5e-3;
-      f2 =  2.0e-3;
-      A1 = 3.5e-40;
-      A2 = 1.5e-40;
-      slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
-     confusion_noise = A1*pow((f/f1),slope);
-    }
-  if((f > 2.0e-3) && (f <= 2.2e-3))
-    {
-      f1 = 2.0e-3;
-      f2 =  2.2e-3;
-      A1 = 1.5e-40;
-      A2 = 9.2e-41;
-      slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
-     confusion_noise = A1*pow((f/f1),slope);
-    }
-  if((f > 2.2e-3) && (f <= 2.3e-3))
-    {
-      f1 = 2.2e-3;
-      f2 =  2.3e-3;
-      A1 = 9.2e-41;
-      A2 = 4.1e-41;
-      slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
-     confusion_noise = A1*pow((f/f1),slope);
-    }
-  if((f > 2.3e-3) && (f <= 2.5e-3))
-    {
-      f1 = 2.3e-3;
-      f2 =  2.5e-3;
-      A1 = 4.1e-41;
-      A2 = 9.1e-42;
-      slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
-     confusion_noise = A1*pow((f/f1),slope);
-    }
-  if((f > 2.5e-3))
-    {
-      f1 = 2.5e-3;
-      f2 =  3.0e-3;
-      A1 = 9.1e-42;
-      A2 = 5.5e-43;
-      slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
-     confusion_noise = A1*pow((f/f1),slope);
-    }
+	if(f > 1.0e-4) {
+		slope = (log10(A2)-log10(A1))/(log10(f2)-log10(f1));
+		confusion_noise = A1*pow((f/f1),slope);
+	} else {
+		confusion_noise = 0.0;
+	}
 
-  // Calculate the power spectral density of the detector noise at the given frequency
+	// AE noise should be 8 Sop (2 + cos x) sin^2 x + 128 Spm sin^2 x sin^4 x/2
+	// this has (2/3) sin^2 x (8 (2 + cos x) Sps + 128 sin^4 x/2 [Sacc (2 pi f)^-4 (1 + (f/1e-4)^-2)]) / L^2
+	// with Sps = 4.0e-22, Sacc = 9.0e-30 --- these are in m^2/Hz and m^2/s^4/Hz
+	// compare with mldc-nominal Spm = 2.53e-48 * (1.0 + (f/1.0e-4)**-2) * f**(-2)    # 3e-15 m/s^2/sqrt(Hz)
+	//                           Sop = 1.75e-37 * f**2                                # 2e-11 m/sqrt(Hz)
 
-  Sn = 16.0/3.0*pow(sin(f/fstar),2.0)*(((2.0+cos(f/fstar))*Sps + 2.0*(3.0+2.0*cos(f/fstar)+cos(2.0*f/fstar))*Sacc*(1.0/pow(2.0*pi*f,4)+ red/pow(2.0*pi*f,6))) / pow(2.0*L,2.0)) + confusion_noise;
+	// Calculate the power spectral density of the detector noise at the given frequency
+	double red = (2.0*pi*1.0e-4)*(2.0*pi*1.0e-4);
+	return (16.0/3.0)*pow(sin(f/fstar),2.0)*(((2.0+cos(f/fstar))*Sps + 2.0*(3.0+2.0*cos(f/fstar)+cos(2.0*f/fstar))*Sacc*(1.0/pow(2.0*pi*f,4)+red/pow(2.0*pi*f,6)))/pow(2.0*L,2.0)) + confusion_noise;
+}
 
-  // Sn = confusion_noise;
-	
-  return Sn;
+void setL(double l) {
+    L = l;
+    
+    ec = L / (2.0 * AU * sq3);
+    fstar = clight / (2.0 * pi * L);
 }
 
 FastResponse::FastResponse(long Nreq,double Treq,double dtreq) : N(Nreq), M(Nreq), T(Treq), dt(dtreq) {

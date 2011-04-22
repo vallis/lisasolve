@@ -34,7 +34,7 @@ else:
 	import lisaxml
 
 import numpy
-import FrequencyArray
+import mc3lisa, FrequencyArray
 from countdown import countdown
 
 lisaxml.SourceClassModules['FastGalacticBinary'] = 'FastBinary'
@@ -52,7 +52,7 @@ class FastGalacticBinary(lisaxml.Source):
                    ('InitialPhase',               'Radian',    None, 'GW phase at t = 0') )
     
     FastBinaryCache = {}
-    
+        
     # TO DO: the initialization may be a useful extension of lisaxml.Source
     def __init__(self,name='',init=None):
         super(FastGalacticBinary, self).__init__('FastGalacticBinary',name)
@@ -142,9 +142,6 @@ class FastGalacticBinary(lisaxml.Source):
             
             return buf
     
-    year = 3.15581498e7
-    fstar = 0.00954269032
-    
     def slave(self,simulator='synthlisa',T=6.2914560e7,dt=15,algorithm='mldc',oversample=1,kmin=0,length=None):
         from mpi4py import MPI
         
@@ -177,11 +174,11 @@ class FastGalacticBinary(lisaxml.Source):
     def buffersize(self,T,f,fdot,A,algorithm='mldc',oversample=1):
         if algorithm == 'legacy' or algorithm == 'mldc':
             # bins are smaller for multiple years
-            if T/self.year <= 1.0:
+            if T/year <= 1.0:
                 mult = 1
-            elif T/self.year <= 2.0:
+            elif T/year <= 2.0:
                 mult = 2
-            elif T/self.year <= 4.0:
+            elif T/year <= 4.0:
                 mult = 4
             else:
                 mult = 8
@@ -212,7 +209,7 @@ class FastGalacticBinary(lisaxml.Source):
                     N = N * 2
             
             # TDI noise, normalized by TDI response function
-            Sm = AEnoise(f) / (4.0 * math.sin(f/self.fstar) * math.sin(f/self.fstar))
+            Sm = AEnoise(f) / (4.0 * math.sin(f/cvar.fstar) * math.sin(f/cvar.fstar))
             
             # approximate SNR
             Acut = A * math.sqrt(T/Sm)
@@ -229,7 +226,7 @@ class FastGalacticBinary(lisaxml.Source):
                 M = N = max(M,N)
             else:
                 M = N = min(8192,max(M,N))
-        else:
+        else:   # we should call this new algorithm 'lisasolve'
             # LISA response bandwidth for Doppler v/c = 1e-4 on both sides, and frequency evolution
             deltaf = fdot * T + 2.0e-4 * f
             # bins, rounded to next-highest power of two; make sure we have enough for sidebands
@@ -238,8 +235,7 @@ class FastGalacticBinary(lisaxml.Source):
             
             # approximate source SNR
             f0 = f + 0.5 * fdot * T
-            noise = AEnoise(f0) / (4.0 * math.sin(f0/self.fstar) * math.sin(f0/self.fstar))
-            SNR = A * math.sqrt(T/noise)
+            SNR = mc3lisa.tdi.simplesnr(f0,A,years=T/year)
             
             # bandwidth for carrier frequency, off bin, worst case dx = 0.5 (accept 0.1 +- SNR)
             bins = max(1,2*2*SNR)
@@ -309,7 +305,6 @@ class FastGalacticBinary(lisaxml.Source):
             for i,a in enumerate((fastbin.XSL, fastbin.YSL, fastbin.ZSL) if (simulator == 'synthlisa') else (fastbin.XLS, fastbin.YLS, fastbin.ZLS)):
                 buffer[i][begb:endb] += a[bega:enda:2] + 1j * a[(bega+1):enda:2]
     
-    # total observation time is hardcoded to 2^22 * 15 seconds
     def TDI(self,T=6.2914560e7,dt=15.0,simulator='synthlisa',table=None,algorithm='mldc',oversample=1):
         X, Y, Z = self.fourier(simulator,table,T=T,dt=dt,algorithm=algorithm,oversample=oversample)
         
