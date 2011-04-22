@@ -1,4 +1,4 @@
-/* constants from Constants.h */
+#ifndef FASTBINARY_H
 
 // mathematical
 const double pi = 3.141592653589793;
@@ -8,13 +8,14 @@ const double sq3 = 1.73205080757;
 const double clight = 299792458;      // m/s
 const double AU = 1.49597870660e11;   // m
 
-// LISA
-const double L = 5.0e9;             // armlength
-const double fstar = 0.00954269032; // transfer frequency
+// definitions in FastBinary.cpp
+extern double L, fstar, ec;
+
+const double year = 31558149.8;		// sidereal year
 const double fm = 3.168753575e-8;   // modulation frequency
+
 const double kappa = 0.0;           // initial azimuthal position of the guiding center
 const double lambda = 0.0;          // initial orientation of the LISA constellation
-const double ec = 0.009648370435;   // eccentricity
 
 const double Sps = 4.0e-22;         // photon shot noise power (Neil's value)
 const double Sacc = 9.0e-30;        // acceleration noise power (Neil's value)
@@ -24,14 +25,13 @@ const double Sacc = 9.0e-30;        // acceleration noise power (Neil's value)
 
 extern "C" {
     #include <fftw3.h>
-    
-    /* double AEnoise(double f); */
 }
 
 double AEnoise(double f);
+void setL(double l);
 
 class FastResponse {
-private:
+  private:
     long N, M;
     double T, dt;
     
@@ -63,7 +63,7 @@ private:
 
     void XYZ(double f0, long q, double *XLS, double *XSL, double *YLS, double *YSL, double *ZLS, double *ZSL);
 
-public:
+  public:
     FastResponse(long Nreq,double Treq,double dtreq);
     ~FastResponse();
     
@@ -73,3 +73,6 @@ public:
                   double *ZLS,long ZLSlen,double *ZSL,long ZSLlen,
                   int method);
 };
+
+#define FASTBINARY_H
+#endif
