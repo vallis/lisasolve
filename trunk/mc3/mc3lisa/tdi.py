@@ -33,7 +33,7 @@ class TDIf(object):
         return self
     
     
-    # TO DO: memoize the properties?    
+    # TO DO: memoize the properties?
     @property
     def Sae(self):
         if self._Sae == None: self._Sae = noisepsd_AE(self.Af)
@@ -93,7 +93,7 @@ class TDIf(object):
     def dotprod(self,other):
         return (4.0 / self.Af.df) * N.real( N.sum(N.conj(self.Af) * other.Af / self.Sae) +
                                             N.sum(N.conj(self.Ef) * other.Ef / self.Sae) +
-                                            N.sum(N.conj(self.Tf) * other.Tf / self.St ) )    
+                                            N.sum(N.conj(self.Tf) * other.Tf / self.St ) )
     
     def logL(self,other):
         return -0.5 * (4.0 / self.Af.df) * ( N.sum(N.abs(self.Af.rsub(other.Af))**2 / self.Sae) +
@@ -103,21 +103,19 @@ class TDIf(object):
 
 
 
-def SNR(state):
-    signal = state.model.datamodel(state)
-    
-    return math.sqrt(signal.normsq())
+def SNR(center,gettdi):
+    return math.sqrt(gettdi(center).normsq())
 
+
+def fisher(center,scale,gettdi):    
+    x0, dx = N.asarray(center), N.asarray(scale)
+    d = len(x0)
     
-def fisher(center,scale):
-    x0 = center.asarray(); d = len(x0)
-    dx = center.fromarray(scale)    
-    
-    delta = lambda i: N.identity(d)[i,:]    # is there a good numpy builtin for the *vector* delta_ij?
-    gettdi = lambda s: center.model.datamodel(center.model.state(s))
+    # is there a better numpy builtin for the *vector* delta_ij?
+    delta = lambda i: N.identity(d)[i,:]
     
     derivs = [ ( gettdi(x0 + delta(i)*dx[i]) - gettdi(x0 - delta(i)*dx[i]) ) / (2.0*dx[i]) for i in range(d) ]
-        
+    
     prods = N.zeros((d,d),'d')
     for i in range(d):
         for j in range(i,d):
@@ -126,39 +124,71 @@ def fisher(center,scale):
     return prods
 
 
-defaultmodel = 'lisareq'
 
+class model(object):
+    defaultmodel = 'lisareq'
+    noisemodel = defaultmodel
+    
+    defaultL = 16.6782
+    lisaL = defaultL
+    
+    @staticmethod
+    def setL(Lm):
+        # set L in meters (same as in fastsource/fastbinary)
+        model.lisaL = Lm / 299792458
+    
+
+
+# currently only the lpf model allows for the part of optical noise that does not change with armlength
 def lisanoises(f,noisemodel=None):
-    if noisemodel == None: noisemodel = defaultmodel
+    if noisemodel == None: noisemodel = model.noisemodel
     
     if   noisemodel == 'mldc':
         Spm = 2.5e-48 * (1.0 + (f/1.0e-4)**-2) * f**(-2)
-        Sop = 1.8e-37 * f**2
+        Sop = 1.8e-37 * (model.lisaL/model.defaultL)**2 * f**2
     elif noisemodel == 'mldc-nominal':
-        Spm = 2.53654e-48 * (1.0 + (f/1.0e-4)**-2) * f**(-2)    # 3e-15 m/s^2/sqrt(Hz)
-        Sop = 1.75703e-37 * f**2                                # 2e-11 m/sqrt(Hz)
+        Spm = 2.53654e-48 * (1.0 + (f/1.0e-4)**-2) * f**(-2)        # 3e-15 m/s^2/sqrt(Hz)
+        Sop = 1.75703e-37 * (model.lisaL/model.defaultL)**2 * f**2  # 2e-11 m/sqrt(Hz)
     elif noisemodel == 'lisareq':
         Spm = 2.53654e-48 * (1.0 + (f/1.0e-4)**-1) * (1.0 + (f/0.008)**4) * f**(-2)
-        Sop = 1.42319e-37 * (1.0 + (f/0.002)**-4) * f**2
+        Sop = 1.42319e-37 * (model.lisaL/model.defaultL)**2 * (1.0 + (f/0.002)**-4) * f**2
+    elif noisemodel == 'lpf':
+        # LPF CBE curve from ? via Oliver; the coefficient in front is [10^-14.09 * c / (2 pi)]^2
+        Spm = 1.86208e-47 * (1.0 + (f/10**-3.58822)**-1.79173) * (1.0 + (f/10**-2.21652)**3.74838) * f**(-2)
+        
+        # see LISA-variant Mathematica notebook; include only shot-noise correction due to armlength
+        # constants are 7.7 and 9.25 pm squared and multiplied by (2 pi / c)^2
+        # notice the standard curve includes 18 pm of which 35% is margin
+        Sop = (3.75839e-38 + 2.60435e-38*(model.lisaL/model.defaultL)**2) * (1.0 + (f/0.002)**-4) * f**2
+    else:
+        raise NotImplementedError
     
     return Spm, Sop
 
+
+# note: not updated for shorter armlengths, LPF noise, better optical noise model
 def lisanoise(f,noisemodel=None):
+    if noisemodel == None: noisemodel = model.noisemodel
+    
     if noisemodel == 'cutler':
         return (20.0/3.0)*(9.18e-52 * f**-4 + 1.59e-41 + 9.18e-38 * f**2)
-    
-    # otherwise use the LISA requirements model
-    c = 299792458; L = 16.6782 * c  # note: it's really 16.67 in the requirements
-    
-    Sa  = 3e-15 * N.sqrt(1.0 + (f/1.0e-4)**-1) * N.sqrt(1.0 + (f/0.008)**4)
-    Sac = Sa * 2.0 / (2.0 * math.pi * f)**2
-    
-    So  = 18e-12 * N.sqrt(1 + (f/0.002)**-4)
-    
-    ft = c / (2.0 * L)
-    T2 = 1.0 + (f/(0.41 * ft))**2
-    
-    return (20.0/3.0) * T2 * (Sac**2 + So**2) / L**2
+    elif noisemodel == 'lisareq' or noisemodel == 'lpf':
+        if noisemodel == 'lisareq':
+            Sa = 3e-15 * N.sqrt(1.0 + (f/1.0e-4)**-1) * N.sqrt(1.0 + (f/0.008)**4)
+            So = 18e-12 * (model.lisaL/model.defaultL)**2 * N.sqrt(1 + (f/0.002)**-4)
+        else:
+            Sa = 10**-14.09 * N.sqrt((1.0 + (f/10**-3.58822)**-1.79173) * (1.0 + (f/10**-2.21652)**3.74838))
+            So = N.sqrt((7.7e-12)**2 * (model.lisaL/model.defaultL)**2 + (9.25e-12)**2) * N.sqrt(1 + (f/0.002)**-4)
+        
+        Sac = Sa * 2.0 / (2.0 * math.pi * f)**2
+        
+        c = 299792458; L = model.lisaL * c
+        ft = c / (2.0 * L)
+        T2 = 1.0 + (f/(0.41 * ft))**2
+        
+        return (20.0/3.0) * T2 * (Sac**2 + So**2) / L**2
+    else:
+        raise NotImplementedError
 
 def simplesnr(f,h,i=None,years=1,noisemodel=None):
     if i == None:
@@ -174,9 +204,7 @@ includewd = False
 # from lisatools makeTDIsignal-synthlisa2.py
 def noisepsd_X(frequencydata):
     f = frequencydata.f
-    
-    L  = 16.6782
-    x = 2.0 * math.pi * L * f
+    x = 2.0 * math.pi * model.lisaL * f
     
     Spm, Sop = lisanoises(f)
     
@@ -185,7 +213,7 @@ def noisepsd_X(frequencydata):
     # Sa = Sx - Sxy
         
     if includewd:
-        Sx += (2.0 * L)**2 * (2*math.pi*f)**2 * 4.0 * N.sin(x)**2 * (
+        Sx += (2.0 * model.lisaL)**2 * (2*math.pi*f)**2 * 4.0 * N.sin(x)**2 * (
                 N.piecewise(f,(f >= 1.0e-4  ) & (f < 1.0e-3  ),[lambda f: 10**-44.62 * f**-2.3, 0]) + \
                 N.piecewise(f,(f >= 1.0e-3  ) & (f < 10**-2.7),[lambda f: 10**-50.92 * f**-4.4, 0]) + \
                 N.piecewise(f,(f >= 10**-2.7) & (f < 10**-2.4),[lambda f: 10**-62.8  * f**-8.8, 0]) + \
@@ -195,9 +223,7 @@ def noisepsd_X(frequencydata):
 
 def noisepsd_AE(frequencydata):    
     f = frequencydata.f
-    
-    L  = 16.6782
-    x = 2.0 * math.pi * L * f
+    x = 2.0 * math.pi * model.lisaL * f
     
     Spm, Sop = lisanoises(f)
     
@@ -205,7 +231,7 @@ def noisepsd_AE(frequencydata):
                               Sop * (2.0 + N.cos(x)))
     
     if includewd:
-        Swd = (2.0 * L)**2 * (2*math.pi*f)**2 * 4.0 * N.sin(x)**2 * (
+        Swd = (2.0 * model.lisaL)**2 * (2*math.pi*f)**2 * 4.0 * N.sin(x)**2 * (
                 N.piecewise(f,(f >= 1.0e-4  ) & (f < 1.0e-3  ),[lambda f: 10**-44.62 * f**-2.3, 0]) + \
                 N.piecewise(f,(f >= 1.0e-3  ) & (f < 10**-2.7),[lambda f: 10**-50.92 * f**-4.4, 0]) + \
                 N.piecewise(f,(f >= 10**-2.7) & (f < 10**-2.4),[lambda f: 10**-62.8  * f**-8.8, 0]) + \
@@ -219,9 +245,7 @@ def noisepsd_AE(frequencydata):
 # TO DO: currently not including WD background here... probably OK
 def noisepsd_T(frequencydata):
     f = frequencydata.f
-    
-    L  = 16.6782
-    x = 2.0 * math.pi * L * f
+    x = 2.0 * math.pi * model.lisaL * f
     
     Spm, Sop = lisanoises(f)
     
