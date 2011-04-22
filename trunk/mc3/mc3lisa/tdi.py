@@ -102,7 +102,6 @@ class TDIf(object):
     
 
 
-
 def SNR(center,gettdi):
     return math.sqrt(gettdi(center).normsq())
 
