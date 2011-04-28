@@ -1,0 +1,53 @@
+Phenomenological waveform tools
+Emma Robinson 2011
+
+================================================================================
+phenomwf
+
+This is a function to calculate the phenomenological waveforms a la 
+Santamaria et al ( http://arxiv.org/abs/1005.3306 ). It was stripped out of
+my LAL code. It is called with several parameters:
+
+Output:
+	wfreal: real part of the output waveform
+	wfimag: imaginary part of the output waveform
+
+Input:
+	f:	array of frequencies (in Hz)
+        n:	length of the frequency array
+	df:	resolution of the frequency array
+	fMin:	minimum frequency for which to calculate the waveform
+	fMax:	maximum frequency for which to calculate the waveform
+	eta:	symmetric mass ratio
+	chi:	spin parameter
+	Mtot:	total mass of the system (in units of solar mass)
+	dL:	luminosity distance (in units of MPc)
+
+Some things to note:
+
+fMin and fMax are not necessarily the minimum and maximum frequencies of the
+frequency array, f. You can pass a larger array, and the function will only
+calculate the waveform for fMin<f<fMax. All other values will be set to zero.
+
+The input frequencies (f, fMin, fMax, df) should be in Hz, not in dimensionless
+frequency.
+
+Mtot is in units of solar mass.
+
+The waveform is also set to zero for frequencies fM>0.15.
+
+The waveform has been calculated assuming the Fourier transform conventions
+in the paper. 
+
+================================================================================
+
+testphenomwf
+
+This is a simple command line tool to demostrate the usage of phenomwf. The 
+command line usage is
+
+testphenomwf eta chi Mtot fMin fMax df dL outputfile
+
+The function creates a frequency array from zero to fMax and the
+associated wave form arrays. It calculates a waveform and writes the
+real and imaginary parts to the outputfile.
