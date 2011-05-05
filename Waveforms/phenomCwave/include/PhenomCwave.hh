@@ -58,13 +58,15 @@ public:
 
   /*** Computes Hplus, Hcross in radiative frame in freq. domain. Returns size of Hp, Hc
    * @param H BBHTemplate object (parameters)
+   * @param freq array of frequencies
+   * @param n size of the arrays
    * @param Hp to be filled up with h+(f)
    * @param Hc to be filled up with hx(f)
   */
-  int ComputeHpHc(BBHTemplate H, std::complex<double>* &Hp, std::complex<double>* &Hc);
+  int ComputeHpHc(BBHTemplate H, int n, double* &freq, std::complex<double>* &Hp, std::complex<double>* &Hc);
   
   /*** Computes  H22, returns size of H22 */
-  int ComputeH22(BBHTemplate H, std::complex<double>* &H22);
+  int ComputeH22(BBHTemplate H, int n, double* &freq, std::complex<double>* &H22);
   
   /*** Computes the time[i] corresponding to the freq[i] using 3.5 PN 
    * @param H BBHtemplate object (parameters)
@@ -77,6 +79,8 @@ public:
   /*** Computes h+(t) and hx(t). Note that you need to specify shift in time to avoid folding 
      * Duation of the waveform (tc) should be less than T_obs-tShift
      * @param H BBHtemplate object (parameters)
+     * @param freq array of frequencies
+     * @param n size of the arrays
      * @param HpT h+(t) to be filled up
      * @param HcT hx(t) to be filled up
      * @param tShift h(t) will be shifted in time by tSHift to avoid folding (iFFT of h(f) returns always waveform 
