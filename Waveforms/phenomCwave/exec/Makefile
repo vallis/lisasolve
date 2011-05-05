@@ -9,10 +9,10 @@ LDFLAGS= -lm -lfftw3f -lfftw3 -lgsl -lgslcblas
 SOURCES= $(SDir)BBHTemplate.cc  $(SDir)Constants.cc  $(SDir)PhenomCwave.cc\
 $(SDir)phenomwf.cc $(SDir)RandomGen.cc \
 $(SDir)IndexSet.cc  $(SDir)LISAmotion.cc  $(SDir)LinAlg.cc $(SDir)Matrix.cc $(SDir)fftw++.cc\
-$(SDir)ComputeTDI_Freq.cc $(SDir)OrbitalMotion.cc
+$(SDir)ComputeTDI_Freq.cc $(SDir)OrbitalMotion.cc $(SDir)ComputeFisher.cc $(SDir)NoiseModels.cc
 
 OBJECTS= $(SOURCES:.cc=.o)
-EXEC= ComputePhenWave CompTDItry
+EXEC= ComputePhenWave CompTDItry EvalErrorsTest EvalSNRs
 
 .c.o:
 	$(C) -c $(INCLUDES) $< -o $(<D)/$(@F)
@@ -33,6 +33,12 @@ CompTDItry: $(OBJECTS) CompTDI_try.o
 	$(CC) $(CPPFLAGS) $(LIBS) $(OBJECTS) CompTDI_try.o -o CompTDItry $(LDFLAGS)
 
 
+EvalErrorsTest: $(OBJECTS) EvalErrorsTest.o 
+	$(CC) $(CPPFLAGS) $(LIBS) $(OBJECTS) EvalErrorsTest.o -o EvalErrorsTest $(LDFLAGS)
+
+
+EvalSNRs: $(OBJECTS) EvaluateSNRs.o 
+	$(CC) $(CPPFLAGS) $(LIBS) $(OBJECTS) EvaluateSNRs.o -o EvalSNRs $(LDFLAGS)
 
 #all: SearchX
 

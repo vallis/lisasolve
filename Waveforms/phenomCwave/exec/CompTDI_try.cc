@@ -71,8 +71,10 @@ int main(){
    df = 1./Tobs;  // 1/year
    
    // Estimate roughly F_min based on tc:
-   double tc = Tobs-5.e6; // almost 1 year
-   double tshift = 1.e6;
+   double tshift = 1.00003e6;  // -> difference in tc with tdi 30 sec.
+   double tc = Tobs-tshift; // almost 1 year
+   H.tc = tc;
+   
    double ThetaQ = pow(0.2*H.eta/H.Mt*tc, -0.25);
    double x = 0.25*ThetaQ*( 1. + (743./4032. + 11.*H.eta/48.)*ThetaQ );
    Fmin = pow(x, 1.5)/(LISAWP_PI*H.Mt);
@@ -89,18 +91,21 @@ int main(){
    
    std::complex<double>* Hplus = NULL;
    std::complex<double>* Hcross = NULL;
-   
-   int n = PW.ComputeHpHc(H, Hplus, Hcross);
-   std::cout << "n = " << n << std::endl;
-   
+   int n = (int) floor (Fmax / df)+1;
    double* freq;
    freq = new double[n];
+   for (int i=0; i<n; i++ ){
+       freq[i]=(double)i*df;
+   }
+   
+   int ck = PW.ComputeHpHc(H, n, freq, Hplus, Hcross);
+   std::cout << "n = " << n << "   " << ck << std::endl;
+     
    double* tm;
    tm = new double[n];
    
    for (int i=0; i<n; i++ )
    {
-      freq[i]=i*df;
       tm[i] = 0.0;
    }
    //std::cout << freq[10] << "   " << tm[0] << "  " << H22[1] << std::endl;
@@ -108,7 +113,7 @@ int main(){
    std::ofstream fout27("Data/TimeTest.dat");
    for (int i=0; i<n; i++ )
    {
-      tm[i] += (5.e6-tshift);
+      //tm[i] += (5.e6-tshift);
       fout27 << std::setprecision(15) << (double)i*dt << spr << tm[i] << spr << freq[i] << std::endl;
       
    }
@@ -123,7 +128,7 @@ int main(){
   
    for (int i=0; i<n; i++ )
    {
-      fr=i*df;
+      fr=freq[i];
       shiftPh = tshift*LISAWP_TWOPI*fr;
       tmp = Hplus[i];
       Hplus[i] = (Hplus[i]*cpsi + Hcross[i]*spsi)*(cos(shiftPh) + img*sin(shiftPh));
@@ -159,9 +164,9 @@ int main(){
    Z = new  std::complex<double>[n];
    
    fTDI.ChooseConfiguration("aLISA");
-   //fTDI.ComputeTDIfreqXYZ(n,  H.thetaS, H.phiS, tm, freq, Hplus, Hcross, X, Y, Z);
+   fTDI.ComputeTDIfreqXYZ(n,  H.thetaS, H.phiS, tm, freq, Hplus, Hcross, X, Y, Z);
    // Or one can compute Long wavelength limit:
-   fTDI.ComputeLWfreqXYZ(n,  H.thetaS, H.phiS, tm, freq, Hplus, Hcross, X, Y, Z);
+   //fTDI.ComputeLWfreqXYZ(n,  H.thetaS, H.phiS, tm, freq, Hplus, Hcross, X, Y, Z);
    std::cout << "TDIs computed\n";
    
    // shifting the waveform...
