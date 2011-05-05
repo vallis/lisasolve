@@ -60,6 +60,7 @@ BBHTemplate::BBHTemplate(const BBHTemplate& p){
    Mt = p.Mt;   // in seconds
    Mc = p.Mc;   // in seconds
    eta = p.eta;
+   q = p.q;
 //   lam = ;
 //   bet = ;
    chi = p.chi;
@@ -87,6 +88,7 @@ BBHTemplate BBHTemplate::operator=(const BBHTemplate& p){
       this->Mt = p.Mt;   // in seconds
       this->Mc = p.Mc;   // in seconds
       this->eta = p.eta;
+      this->q = p.q;
    //   lam = ;
    //   bet = ;
       this->chi = p.chi;
