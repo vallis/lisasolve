@@ -34,14 +34,17 @@ PhenomCwave::PhenomCwave(double Fmin, double Fmax, double delF){
    
 }
 
-int PhenomCwave::ComputeHpHc(BBHTemplate H, std::complex<double>* &Hp, std::complex<double>* &Hc){
+int PhenomCwave::ComputeHpHc(BBHTemplate H, int n, double* &freq, std::complex<double>* &Hp, std::complex<double>* &Hc){
    
    double eta = H.eta;
    double chi = H.chi;
    double Mtot = H.M;
    
-   int n,i;
-   n = (int) floor (fMax / df)+1;
+   // I Assume that the frequency array is filled up somewhere else.
+   
+   
+   int i;
+   //n = (int) floor (fMax / df)+1;
    if (Hp == NULL){
       Hp = new std::complex<double>[n];
    }
@@ -49,22 +52,18 @@ int PhenomCwave::ComputeHpHc(BBHTemplate H, std::complex<double>* &Hp, std::comp
       Hc = new std::complex<double>[n];
    }
    
-  
    
-   double* freq;
-   freq = new double[n];
    double* amp;
    double* phs;
    amp  = new double[n];
    phs = new double[n];
    for (int i=0; i<n; i++ )
     {
-      freq[i]=i*df;
       amp[i] = 0.0;
       phs[i] = 0.0;
     }
    
-   phenomwf2( amp , phs , freq , n , df , fMin , fMax , eta , chi , Mtot, H.dist);
+   phenomwf2( amp , phs , freq , n , fMin , fMax , eta , chi , Mtot, H.dist);
 
    //constructing + and x
 
@@ -81,18 +80,14 @@ int PhenomCwave::ComputeHpHc(BBHTemplate H, std::complex<double>* &Hp, std::comp
    
    for (int i=0; i<n; i++){
       phase = phs[i] + 2.*H.phi0;
-      amplhp = amp[i]*fact*(1.+ci*ci); // This is |H_22Y_22| + |H_2-2 Y_2-2|, H_2-2 = H*_22  
+      amplhp = amp[i]*fact*(1.+ci*ci);     // This is |H_22Y_22| + |H_2-2 Y_2-2|, H_2-2 = H*_22  
       amplhc = -amp[i]*fact*2.*ci;         // This is -|H_22Y_22| + |H_2-2 Y_2-2|, H_2-2 = H*_22  
       cph = cos(phase);
       sph = sin(phase);
       Hp[i] = amplhp *(cph - img*sph);
-      Hc[i] = img*amplhc*(cph - img*sph); // check -
-      
+      Hc[i] = img*amplhc*(cph - img*sph);
    }
    
-    
-
-   delete [] freq;
    delete [] amp;
    delete [] phs;
    
@@ -100,7 +95,7 @@ int PhenomCwave::ComputeHpHc(BBHTemplate H, std::complex<double>* &Hp, std::comp
    
 }
 
-int PhenomCwave::ComputeH22(BBHTemplate H, std::complex<double>* &H22){
+int PhenomCwave::ComputeH22(BBHTemplate H, int n, double* &freq, std::complex<double>* &H22){
    
    double eta = H.eta;
    double chi = H.chi;
@@ -108,14 +103,12 @@ int PhenomCwave::ComputeH22(BBHTemplate H, std::complex<double>* &H22){
    
   // std::cout << "eta = " << eta << "  chi = " << chi << "  Mtot = " << Mtot << std::endl;
    
-   int n,i;
-   n = (int) floor (fMax / df)+1;
+   int i;
+   //n = (int) floor (fMax / df)+1;
    if (H22 == NULL){
       H22 = new std::complex<double>[n];
    }
    
-   double* freq;
-   freq = new double[n];
    double* hreal;
    double* himg;
    hreal  = new double[n];
@@ -124,18 +117,16 @@ int PhenomCwave::ComputeH22(BBHTemplate H, std::complex<double>* &H22){
    
    for (int i=0; i<n; i++ )
     {
-      freq[i]=i*df;
       hreal[i] = 0.0;
       himg[i] = 0.0;
     }
    
-   phenomwf( hreal , himg , freq , n , df , fMin , fMax , eta , chi , Mtot );
+   phenomwf( hreal , himg , freq , n , fMin , fMax , eta , chi , Mtot );
    
    for (int i=0; i<n; i++){
       H22[i] = hreal[i] - img*himg[i];
    }  
    
-   delete [] freq;
    delete [] hreal;
    delete [] himg;
    
@@ -152,7 +143,14 @@ int PhenomCwave::ComputeHofT(BBHTemplate H, double* &HpT, double* &HcT, double t
    std::complex<double>* Hplus = NULL;
    std::complex<double>* Hcross = NULL;
 
-   int n = ComputeHpHc(H, Hplus, Hcross);    
+   int n = (int) floor (fMax / df)+1;
+   double* freq;
+   freq = new double[n];
+   for (int i=0; i<n; i++ )
+   {
+        freq[i]=(double)i*df;
+   }
+   int ck = ComputeHpHc(H, n, freq, Hplus, Hcross);    
    //std::cout << "freq domain waveforms computed " << n << std::endl;
    
    int datSz = 2*(n-1);
@@ -163,7 +161,7 @@ int PhenomCwave::ComputeHofT(BBHTemplate H, double* &HpT, double* &HcT, double t
    std::complex<double> img(0.0, 1.0);
    double shiftPh, fr;
    for (int i=0; i<n; i++){
-      fr=i*df;
+      fr=freq[i];
       shiftPh = tShift*LISAWP_TWOPI*fr;
       Hplus[i] = Hplus[i] * (cos(shiftPh) + img*sin(shiftPh));
       Hcross[i] = Hcross[i] * (cos(shiftPh) + img*sin(shiftPh));
@@ -177,6 +175,7 @@ int PhenomCwave::ComputeHofT(BBHTemplate H, double* &HpT, double* &HcT, double t
    
    delete [] Hplus;
    delete [] Hcross;
+   delete [] freq;
    
    return(datSz);
        
@@ -214,6 +213,8 @@ void PhenomCwave::ComputeTime(BBHTemplate H, double* &freq, double* &tm, int n){
    114561216.*Pi*Pi) - 1530761379840.*log(4.)) - 765380689920.*Pi*Pi*log(pow(om,(2./3.))))/(1201719214080.*eta*Pi*Pi*pow(om,(2./3.)));
    
    double tc = tf;
+   //tc = -H.tc;
+   //std::cout << "Stas:   tc = " << tc << std::endl;
   
    tprev = tc-10.;
    for (int i=0; i<n; i++){

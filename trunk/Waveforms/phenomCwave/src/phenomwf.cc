@@ -26,7 +26,7 @@ const double pct = LISAWP::LISAWP_PC_SI/LISAWP::LISAWP_C_SI; /* parsec in sec */
 /******************************************************************************/
 
 void phenomwf( double *wfreal , double *wfimag , double *f , int n , 
-               double df , double fMin , double fMax , double eta , 
+               double fMin , double fMax , double eta , 
                double chi , double Mtot)
 {
 
@@ -158,7 +158,7 @@ The same as above but returns amplitude and phase
 **********************************************************/
 
 void phenomwf2( double *amp, double *phase, double *f , int n , 
-               double df , double fMin , double fMax , double eta , 
+               double fMin , double fMax , double eta , 
                double chi , double Mtot , double dL )
 {
 
