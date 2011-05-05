@@ -63,7 +63,11 @@ class ComputeTDIfreq{
                               std::complex<double>* &X, std::complex<double>* &Y, std::complex<double>* &Z);           
                               
       /*** This is where you should say what LISA orbit you want to use, sofar only "aLISA" is available */                        
-      void ChooseConfiguration(std::string config);                        
+      void ChooseConfiguration(std::string config);          
+      
+      /*** Generate TDI signal only between fMin and fMax ***/
+      double fMin;
+      double fMax;              
       
    private:
       
