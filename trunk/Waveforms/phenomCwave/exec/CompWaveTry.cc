@@ -79,25 +79,30 @@ int main(){
    
    std::complex<double>* Hplus;
    std::complex<double>* Hcross;
-   
-   int n = PW.ComputeHpHc(H, Hplus, Hcross);
-   std::cout << "n = " << n << std::endl;
-   
+
+   int n = (int) floor (Fmax / df)+1;
    double* freq;
    freq = new double[n];
+   for (int i=0; i<n; i++ ){
+       freq[i]=(double)i*df;
+   }
+   
+   int ck = PW.ComputeHpHc(H, n, freq, Hplus, Hcross);
+   std::cout << "n = " << n << "  " << ck << std::endl;
+   
+   
    double* tm;
    tm = new double[n];
    
    for (int i=0; i<n; i++ )
    {
-      freq[i]=i*df;
       tm[i] = 0.0;
    }
    //std::cout << freq[10] << "   " << tm[0] << "  " << H22[1] << std::endl;
    PW.ComputeTime(H, freq, tm, n);
    
    std::complex<double>* H22;    
-   n =  PW.ComputeH22(H, H22);
+   ck =  PW.ComputeH22(H, n, freq,  H22);
    
    //double amp1 = abs(H22[10])*pow(freq[10], 7./6.);
    
