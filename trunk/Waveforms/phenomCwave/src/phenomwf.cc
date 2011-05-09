@@ -9,6 +9,9 @@
 #include <math.h>
 #include "phenomwf.h"
 #include "Constants.hh"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 /******************************************************************************/
 /* Constants                                                                  */
@@ -206,6 +209,7 @@ void phenomwf2( double *amp, double *phase, double *f , int n ,
 
     Msec = Mtot*mtsun;
     DLsec = dL*pct;
+    //std::cout << "Stas: DL(sec) = "<< DLsec << std::endl;
     
     /*fprintf(stdout, "Ampl factor  =  %e\n",  Msec*Msec/DLsec);*/
     for ( i=0; i<n ; i++ )
