@@ -206,7 +206,7 @@ void ComputeTDIfreq::ComputeTDIfreqXYZ(int sz, double thetaS, double phiS, doubl
           //X[i] = -16.*pow(fr*L, 2.)*( (u[1]-u[2])*hfp[i] + (v[1]-v[2])*hfc[i] )*(cos(fr*(2.*kdR)) - img*sin(fr*(2.*kdR)));
           //X[i] = 4.*img*omL*2.*img*fr*L*( (u[2]*hfp[i] + v[2]*hfc[i]) - (u[1]*hfp[i] + v[1]*hfc[i]) )*(cos(2.*fr*kdR) - img*sin(2.*fr*kdR));
        
-         // X[i] = 4.*fr*L *sin(omL)*( -(u[1]*hfp[i] + v[1]*hfc[i])*(SINC(fr*L*(1.-kn[1]))*ex1 + SINC(fr*L*(1.+kn[1])) )*\
+         ///X[i] = 4.*fr*L *sin(omL)*( -(u[1]*hfp[i] + v[1]*hfc[i])*(SINC(fr*L*(1.-kn[1]))*ex1 + SINC(fr*L*(1.+kn[1])) )*\
                   (cos(fr*(3.*L + kp[0] + kp[2])) - img*sin(fr*(3.*L + kp[0] + kp[2])) ) +\
                   (u[2]*hfp[i] + v[2]*hfc[i])*(SINC(fr*L*(1.+kn[2]))*ex1 + SINC(fr*L*(1.-kn[2])) )*\
                   (cos(fr*(3.*L + kp[0] + kp[1])) - img*sin(fr*(3.*L + kp[0] + kp[1])) )  );

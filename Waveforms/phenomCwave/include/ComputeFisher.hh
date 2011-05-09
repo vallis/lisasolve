@@ -63,6 +63,7 @@ class ComputeFisherC{
       double tshift;
       double Tobs;
       int n; // size of the frequency arrays
+      bool print;
       
       void ComputeWaveXYZ(BBHTemplate S, int n, double* &freq, std::complex<double>* &X, std::complex<double>* &Y,\
          std::complex<double>* &Z);

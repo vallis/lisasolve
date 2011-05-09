@@ -112,7 +112,7 @@ void NoiseModels::miniLISA_C1X(int sz, double* &freq, double* &S_n)
    S_instC1 = 16. * np.sin(2.*pi*fr*L)**2 * ( Ssn + Som + (3. + np.cos(4.*pi*fr*L)) * Sacc ) */
    
    double Sacc = 8.17e-48;
-   double Ssn =  9.88e-37;
+   double Ssn =  4.92e-38; 
    double Som = 2.81e-38;
    
    double L = 1.e9/LISAWP_C_SI;
@@ -137,8 +137,14 @@ void NoiseModels::miniLISA_C1X(int sz, double* &freq, double* &S_n)
           if ((fr>=4.5e-4) && (fr < 5.3e-4)){
               Sgal = L4 * pow(om*sin(omL), 2.)*0.6 *1.e-13 * pow(fr, 7.);
           }
-          if ((fr>=5.3e-4) && (fr <= 5.88e-3)){
+          if ((fr>=5.3e-4) && (fr < 2.2e-3)){
              Sgal = L4 * pow(om*sin(omL), 2.)* 0.6 *2.9714e-47 * pow(fr, -3.235);
+          }
+          if ( (fr>=2.2e-3) && (fr < 4.e-3)){
+             Sgal = L4 * pow(om*sin(omL), 2.)* 0.6 *1.517e-51 * pow(fr, -4.85);
+          }
+          if ((fr>=4e-3) && (fr <= 5.88e-3)){
+             Sgal = L4 * pow(om*sin(omL), 2.)* 0.6 *6.706e-58 * pow(fr, -7.5);
           }
           S_n[i] += Sgal;
        }
