@@ -39,7 +39,7 @@ double ComputeInnerProd(int sz, double fmin, double fmax, std::complex<double>* 
 int main(){
  
    BBHTemplate H;
-   double arm = 5.e9;
+   double arm = 1.e9;
    double year = 31457280.;
    std::string spr = "    ";
    
@@ -55,7 +55,7 @@ int main(){
    std::string config = "aLISA";
    
    double Fmin = 1.e-5;
-   double Fmax = 0.3;
+   double Fmax = 1.0;
    double df = 1.e-6;
    int n = (int) floor (Fmax / df)+1;
    double* freq;
@@ -86,8 +86,8 @@ int main(){
    
    bool galactic_bin = true;
    NoiseModels NM1(galactic_bin);
-   NM1.StandardLISA_X(n, freq, Sn);
-   //NM1.miniLISA_C2X(n, freq, S_n);
+   //NM1.StandardLISA_X(n, freq, Sn);
+   NM1.miniLISA_C1X(n, freq, Sn);
    double x, ThetaQ, fmax1;
    double cpsi;
    double spsi;
@@ -101,7 +101,7 @@ int main(){
    
    // reading the data file
    std::ifstream fin("Data/model_HOR_MCevents_ext.dat");
-   std::ofstream fout("Data/model_HOR_MCevents_SNR.dat");
+   std::ofstream fout("Data/model_HOR_MCevents_SNR_C1.dat");
    for (int i=0; i<nsources; i++){
        
       std::cout << std::endl;

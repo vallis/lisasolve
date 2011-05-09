@@ -40,18 +40,18 @@ int main(){
    
    BBHTemplate H;
    double Dl = 6.e9; // 6 Gpc
-   double arm = 5.e9/LISAWP_C_SI; // LISA's arm in sec
+   double arm = 1.e9/LISAWP_C_SI; // LISA's arm in sec
    std::cout << "arm = " << arm << std::endl;
    double year = 31457280.;
    std::string spr = "    ";
    
    H.m1 = 1.e6;
    H.m2 = 1.e6;
-   H.chi = 0.0;
+   H.chi = 0.9;
    H.dist = Dl;
-   H.iota = 0.0;//LISAWP_PI/3.;
-   H.phi0 = 0.0;
-   H.psi = 0.0;
+   H.iota = 1.2;//LISAWP_PI/3.;
+   H.phi0 = 0.6;
+   H.psi = 1.324;
    H.thetaS = 0.5*LISAWP_PI - 1.0;
    H.phiS = 2.0;
    H.tc = year/2.;
@@ -68,9 +68,9 @@ int main(){
    //Tobs *= 0.5;
    
    Fmax = 1./(2.*dt); // assumes samling rate 15sec
-   Fmax = 0.1;  //    !!!!!   check if we need to go further.   !!!!
+   Fmax = 0.5;  //    !!!!!   check if we need to go further.   !!!!
    df = 1./Tobs;  // 1/year
-   df = 1.e-7;
+   df = 1.e-6;
    
    // Compute noise:
   // std::ofstream fout("Data/CheckNoise.dat");
@@ -87,14 +87,14 @@ int main(){
    
    bool galactic_bin = true;
    NoiseModels NM1(galactic_bin);
-   NM1.StandardLISA_X(n, freq, S_n);
-   //NM1.miniLISA_C2X(n, freq, S_n);
+   //NM1.StandardLISA_X(n, freq, S_n);
+   NM1.miniLISA_C2X(n, freq, S_n);
    
    double* S_n2;
    S_n2 = new double[n];
    galactic_bin = false;
    NoiseModels NM2(galactic_bin);
-   NM2.StandardLISA_X(n, freq, S_n2);
+  // NM2.StandardLISA_X(n, freq, S_n2);
    //NM2.miniLISA_C2X(n, freq, S_n2);
    
 //   for (int i=0; i<n; i++){
@@ -108,6 +108,7 @@ int main(){
    Matrix<double> Fisher(10,10);
    FishC.ComputeRAFisher4links(H, n, freq, S_n, Fisher);
    
+   std:: cout << "Fisher: \n";
    std::cout << Fisher;
    
    
@@ -136,10 +137,19 @@ int main(){
    //std::cout << "check: \n";
    Matrix<double> Un(Fisher*IFisher); // closer to unity
    std::cout << Un;
-   std::cout << " ==========================  \n";
+   std::cout << " ==========================  Inverse Fisher is =============  \n";
    std::cout << IFisher;
    
-   
+   std::cout << "sigma M/M: " << sqrt(IFisher(0,0))/H.M << std::endl;
+   std::cout << "sigma eta: " << sqrt(IFisher(1,1)) << std::endl;
+   std::cout << "sigma chi: " << sqrt(IFisher(2,2)) << std::endl;
+   std::cout << "sigma thetaS: " << sqrt(IFisher(3,3)) << std::endl;
+   std::cout << "sigma phiS: " << sqrt(IFisher(4,4)) << std::endl;
+   std::cout << "sigma Tc: " << sqrt(IFisher(5,5)) << std::endl;
+   std::cout << "sigma psi: " << sqrt(IFisher(6,6)) << std::endl;
+   std::cout << "sigma phi0: " << sqrt(IFisher(7,7)) << std::endl;
+   std::cout << "sigma iota: " << sqrt(IFisher(8,8)) << std::endl;
+   std::cout << "sigma DL/DL: " << sqrt(IFisher(9,9)) << std::endl;
   
    gsl_matrix *m = gsl_matrix_alloc(dim, dim);
    gsl_vector *rhs = gsl_vector_alloc(dim);
@@ -153,17 +163,44 @@ int main(){
    }
    gsl_permutation * p = gsl_permutation_alloc(dim);
    int signum;
-   gsl_vector_set(rhs, 0, 1.0);
+   //gsl_vector_set(rhs, 0, 1.0);
    gsl_matrix *m1 = gsl_matrix_alloc(dim, dim);
    gsl_matrix_memcpy(m1, m);
    int info = gsl_linalg_LU_decomp (m, p, &signum);
-   gsl_linalg_LU_solve(m, p, rhs, x); // third method
+//   gsl_linalg_LU_solve(m, p, rhs, x); // third method
    gsl_vector *residual = gsl_vector_alloc(dim);
-   info = gsl_linalg_LU_refine(m1, m, p, rhs, x, residual);
+//   info = gsl_linalg_LU_refine(m1, m, p, rhs, x, residual);
    
    for (int i=0; i<dim; i++){
-      std::cout << i << "     "  <<gsl_vector_get(x, i) << "   " << gsl_vector_get(residual, i)<< std::endl;;   
+  //    std::cout << i << "     "  <<gsl_vector_get(x, i) << "   " << gsl_vector_get(residual, i)<< std::endl;;   
+      for (int j=0; j<dim; j++){
+         gsl_vector_set(rhs, j, 0.0);
+         if (i ==j )
+            gsl_vector_set(rhs, i, 1.0);         
+      }   
+      gsl_linalg_LU_solve(m, p, rhs, x);
+      info = gsl_linalg_LU_refine(m1, m, p, rhs, x, residual);
+      for (int j=0; j<dim; j++){
+         IFisher(j, i) = gsl_vector_get(x, j); 
+      }      
    }
+   
+   std::cout << "refined inverse Fisher matrix \n";
+   std::cout << IFisher; 
+   
+   std::cout << "\n check \n";
+   std::cout << Fisher*IFisher << std::endl;
+   
+   std::cout << "sigma M/M: " << sqrt(IFisher(0,0))/H.M << std::endl;
+     std::cout << "sigma eta: " << sqrt(IFisher(1,1)) << std::endl;
+     std::cout << "sigma chi: " << sqrt(IFisher(2,2)) << std::endl;
+     std::cout << "sigma thetaS: " << sqrt(IFisher(3,3)) << std::endl;
+     std::cout << "sigma phiS: " << sqrt(IFisher(4,4)) << std::endl;
+     std::cout << "sigma Tc: " << sqrt(IFisher(5,5)) << std::endl;
+     std::cout << "sigma psi: " << sqrt(IFisher(6,6)) << std::endl;
+     std::cout << "sigma phi0: " << sqrt(IFisher(7,7)) << std::endl;
+     std::cout << "sigma iota: " << sqrt(IFisher(8,8)) << std::endl;
+     std::cout << "sigma DL/DL: " << sqrt(IFisher(9,9)) << std::endl;
    
    
    gsl_permutation_free (p);
