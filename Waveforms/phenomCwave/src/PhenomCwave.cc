@@ -79,6 +79,7 @@ int PhenomCwave::ComputeHpHc(BBHTemplate H, int n, double* &freq, std::complex<d
    double cph, sph;
    
    for (int i=0; i<n; i++){
+      //std::cout << amp[i] << std::endl;
       phase = phs[i] + 2.*H.phi0;
       amplhp = amp[i]*fact*(1.+ci*ci);     // This is |H_22Y_22| + |H_2-2 Y_2-2|, H_2-2 = H*_22  
       amplhc = -amp[i]*fact*2.*ci;         // This is -|H_22Y_22| + |H_2-2 Y_2-2|, H_2-2 = H*_22  

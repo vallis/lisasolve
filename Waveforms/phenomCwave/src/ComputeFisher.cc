@@ -43,7 +43,7 @@ ComputeFisherC::~ComputeFisherC()
    std::cout << "The end \n";   
 }
 
-void ComputeFisherC::ComputeRAFisher4links(BBHTemplate S, int n, double* &freq, double* &Sn, Matrix<double> &Fisher){
+double ComputeFisherC::ComputeRAFisher4links(BBHTemplate S, int n, double* &freq, double* &Sn, Matrix<double> &Fisher){
    
    std::complex<double> img(0.0, 1.0);
    // Computing derivatives numerically
@@ -67,19 +67,21 @@ void ComputeFisherC::ComputeRAFisher4links(BBHTemplate S, int n, double* &freq, 
    // find max freq of signal
    fmaxS = fmax;
    std::cout << "Freq. range of the signal: " << fminS << "   " << fmaxS << std::endl;
- //  std::ofstream fout4("Data/CheckW.dat");
+   //std::ofstream fout4("Data/CheckW.dat");
    for (int i=0; i<n; i++){
-     // fout4 << freq[i] << "    " << abs(X[i]) << std::endl;
+      //fout4 << freq[i] << "    " << abs(X[i]) << std::endl;
       if (freq[i] > fminS ){
+         //std::cout  << freq[i] << "    " << abs(X[i]) << std::endl;
          if (abs(X[i]) == 0.0){
             fmaxS = freq[i];
-            std::cout << "i = " << i << std::endl;
+//            std::cout << "i = " << i << std::endl;
             break;
          }
       }
    }
 
-   std::cout << "Freq. range of the signal: " << fminS << "   " << fmaxS << std::endl; 
+   std::cout << "Freq. range of the signal (after): " << fminS << "   " << fmaxS << std::endl; 
+   
    double SNR2 = ComputeInnerProd(n, X, X, freq, Sn);
    std::cout << " SNR^2  = " <<  SNR2 << std::endl;
    //exit(0);
@@ -404,6 +406,8 @@ void ComputeFisherC::ComputeRAFisher4links(BBHTemplate S, int n, double* &freq, 
    delete [] Xn;
    delete [] Y;
    delete [] Z;
+   
+   return(SNR2);
 }
 
 
@@ -435,6 +439,7 @@ void ComputeFisherC::ComputeWaveXYZ(BBHTemplate S, int n, double* &freq, std::co
        fmax1 = fmax;
    }
    tshift = Tobs - S.tc;
+   //std::cout << "tc = " << S.tc <<  "  fmax = " << fmax1 << std::endl;
    
    PhenomCwave PW_C(fmin, fmax1, df);
    std::complex<double>* Hplus = NULL;
@@ -444,14 +449,18 @@ void ComputeFisherC::ComputeWaveXYZ(BBHTemplate S, int n, double* &freq, std::co
    
    int sz = PW_C.ComputeHpHc(S, n, freq, Hplus, Hcross);
    // Apply polarization angle and timeshift
+   //std::ofstream foutH("Data/TestH.dat");
    for (int i=0; i<n; i++ )
    {
       fr=i*df;
+     //  foutH << fr << "    " << abs(Hplus[i]) << std::endl;
       shiftPh = tshift*LISAWP_TWOPI*fr;
       tmp = Hplus[i];
       Hplus[i] = (Hplus[i]*cpsi + Hcross[i]*spsi)*(cos(shiftPh) + img*sin(shiftPh));
       Hcross[i] = (-tmp*spsi + Hcross[i]*cpsi)*(cos(shiftPh) + img*sin(shiftPh));
+      
    }
+   //foutH.close();
    
    PW_C.ComputeTime(S, freq, tm, n);
    

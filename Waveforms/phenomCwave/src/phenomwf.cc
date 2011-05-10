@@ -143,6 +143,8 @@ void phenomwf( double *wfreal , double *wfimag , double *f , int n ,
                     ( PsiRD * w2Plus );
 
         /*** generate the waveform ***/
+        if (AmpPN == 0.0)
+           AmpPhenom = 0.0;
 
         /* real */
         wfreal[i] = AmpPhenom * cos( PhiPhenom );
@@ -191,12 +193,15 @@ void phenomwf2( double *amp, double *phase, double *f , int n ,
     
     /* total spin of final black hole */
     finalSpin = AEIFinalSpin(eta,chi);
+    if (finalSpin >= 0.99)
+       finalSpin = 0.98;
 
     /* calculate the phenom parameters (see Table II) */
     calcPhenParams( &phenParams , eta , chi );
 
     /* fQNM frequency in units of M */
     fRD = fQNM( fabs(finalSpin) );
+     //std::cout << " frd=    " << fRD  << " fin Spin = " << finalSpin<< std::endl;
     /* Q: quality factor of ringdown */
     Q = Qual( fabs(finalSpin) );
 
@@ -229,7 +234,8 @@ void phenomwf2( double *amp, double *phase, double *f , int n ,
         AmpPN = AmpPNFn ( x , eta , &PNParams , &taylorParams );
         /* pre-merger contribution Eq 5.11 */
         AmpPM = AmpPN + ( phenParams.gamma1 * pow( freq , 5.0/6.0 ) );
-
+ 
+        //std::cout << f[i] << "   " << AmpPN << "   " << AmpPM  << "   " << x<< std::endl;
         /* ringdown contribution */
         L = LorentzianFn ( freq, fRD, fRD * phenParams.delta2 / Q );
         /* to correct for different defs of Lorentzian */
@@ -251,6 +257,7 @@ void phenomwf2( double *amp, double *phase, double *f , int n ,
         AmpPhenom = ( (AmpPM*wMinus) + (AmpRD*wPlus) )  * Msec *Msec / (DLsec );
                      // * Msec * Msec  / (DLsec ); 
   
+       
         /*** phase ***/
 
         /* PN contribution Eq 3.13 with t0=phi0=0*/
@@ -285,6 +292,8 @@ void phenomwf2( double *amp, double *phase, double *f , int n ,
         /*** generate the waveform ***/
 
         /* amplitude */
+        if (AmpPN == 0.0)
+               AmpPhenom = 0.0;
         amp[i] = AmpPhenom;
 
         /* phase */
@@ -542,8 +551,15 @@ double AmpPNFn ( double x ,
   Amp22[1] *= 8.0*eta*x*sqrt(pi/5.0);
   XdotT4 = XdotT4Fn ( x , eta , tparams );
  
-  fractionre=Amp22[0]/sqrt(XdotT4);
-  fractionim=Amp22[1]/sqrt(XdotT4);
+ // std::cout << "Stas: XdotT4 = " << XdotT4 << std::endl;
+ 
+  if (XdotT4 > 0.0){
+     fractionre=Amp22[0]/sqrt(XdotT4);
+     fractionim=Amp22[1]/sqrt(XdotT4);
+  }else{
+     fractionre = 0.0;
+     fractionim = 0.0;
+  }
 
   Amp = Amp0 * sqrt((fractionre*fractionre)+(fractionim*fractionim));
 

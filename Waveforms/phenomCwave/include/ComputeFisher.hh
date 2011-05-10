@@ -45,7 +45,7 @@ class ComputeFisherC{
  	   
        ComputeFisherC(double arm, double oneyear, std::string config, double Fmax, double delf, double duration);
       ~ComputeFisherC();
-      void ComputeRAFisher4links(BBHTemplate S, int n, double* &freq, double* &Sn, Matrix<double> &Fisher);
+      double ComputeRAFisher4links(BBHTemplate S, int n, double* &freq, double* &Sn, Matrix<double> &Fisher);
       void ComputeRAFisher6links(BBHTemplate S, int n, double* &freq, double* &Sn, double** &Fisher);
       void ComputeLWFisher4links(BBHTemplate S, int n, double* &freq, double* &Sn, double** &Fisher);
       void ComputeLWFisher6links(BBHTemplate S, int n, double* &freq, double* &Sn, double** &Fisher);

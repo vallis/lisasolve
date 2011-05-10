@@ -106,7 +106,7 @@ int main(){
    ComputeFisherC FishC(arm, year, config, Fmax, df, Tobs);
   
    Matrix<double> Fisher(10,10);
-   FishC.ComputeRAFisher4links(H, n, freq, S_n, Fisher);
+   double SNR2 = FishC.ComputeRAFisher4links(H, n, freq, S_n, Fisher);
    
    std:: cout << "Fisher: \n";
    std::cout << Fisher;
