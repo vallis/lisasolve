@@ -129,5 +129,119 @@ void OrbitalMotion::L1ToyModel(double T_rot, double t, double* &R, double** &p, 
    
    
 }
+
+void OrbitalMotion::InitiateSplinInterpolation(int sz, double* &torb,  double* &x1, double* &y1, double* &z1, double* &x2, double* &y2, double* &z2,\
+                     double* &x3, double* &y3, double* &z3)
+{
+   
+   acc1 = gsl_interp_accel_alloc ();
+   spline1 = gsl_spline_alloc (gsl_interp_cspline, sz);
+   gsl_spline_init (spline1, torb, x1, sz);
+   
+   acc2 = gsl_interp_accel_alloc ();
+   spline2 = gsl_spline_alloc (gsl_interp_cspline, sz);
+   gsl_spline_init (spline2, torb, y1, sz);
+   
+   acc3 = gsl_interp_accel_alloc ();
+   spline3 = gsl_spline_alloc (gsl_interp_cspline, sz);
+   gsl_spline_init (spline3, torb, z1, sz);
+   
+   acc4 = gsl_interp_accel_alloc ();
+   spline4 = gsl_spline_alloc (gsl_interp_cspline, sz);
+   gsl_spline_init (spline4, torb, x2, sz);
+   
+   acc5 = gsl_interp_accel_alloc ();
+   spline5 = gsl_spline_alloc (gsl_interp_cspline, sz);
+   gsl_spline_init (spline5, torb, y2, sz);
+   
+   acc6 = gsl_interp_accel_alloc ();
+   spline6 = gsl_spline_alloc (gsl_interp_cspline, sz);
+   gsl_spline_init (spline6, torb, z2, sz);
+   
+   acc7 = gsl_interp_accel_alloc ();
+   spline7 = gsl_spline_alloc (gsl_interp_cspline, sz);
+   gsl_spline_init (spline7, torb, x3, sz);
+   
+   acc8 = gsl_interp_accel_alloc ();
+   spline8 = gsl_spline_alloc (gsl_interp_cspline, sz);
+   gsl_spline_init (spline8, torb, y3, sz);
+   
+   acc9 = gsl_interp_accel_alloc ();
+   spline9 = gsl_spline_alloc (gsl_interp_cspline, sz);
+   gsl_spline_init (spline9, torb, z3, sz);
+   
+}
+
+void OrbitalMotion::NumericalData( double t, double** &p, double** &n, double &L0, double &L1, double &L2)
+{                     
+    // Note the first spacecraft should be mather in X configuration
+    //X[i] = -4.*img*sin(omL)*(-y1_32*ex2 - y231*ex1 + y123*ex2 + y3_21*ex1);
+    // so it is communication between 1<->2 and 1<->3: x1, y1, z1 should be a mother
+    
+   
+   
+   p[0][0] = gsl_spline_eval (spline1, t, acc1)/LISAWP_C_SI;
+   
+   p[0][1] = gsl_spline_eval (spline2, t, acc2)/LISAWP_C_SI;  
+   
+   p[0][2] = gsl_spline_eval (spline3, t, acc3)/LISAWP_C_SI;
+   
+   p[1][0] = gsl_spline_eval (spline4, t, acc4)/LISAWP_C_SI;
+   
+   p[1][1] = gsl_spline_eval (spline5, t, acc5)/LISAWP_C_SI; 
+
+   p[1][2] = gsl_spline_eval (spline6, t, acc6)/LISAWP_C_SI;
+   
+   p[2][0] = gsl_spline_eval (spline7, t, acc7)/LISAWP_C_SI;
+   
+   p[2][1] = gsl_spline_eval (spline8, t, acc8)/LISAWP_C_SI;
+   
+   p[2][2] = gsl_spline_eval (spline9, t, acc9)/LISAWP_C_SI;
+   
+   L0 = 0.0;
+   L1 = 0.0;
+   L2 = 0.0;
+   for(int i=0; i<3; i++){
+			 n[0][i] = (p[1][i] - p[2][i]);
+		    n[1][i] = (p[2][i] - p[0][i]);
+		    n[2][i] = (p[0][i] - p[1][i]);
+          L0 += n[0][i]*n[0][i];
+          L1 += n[1][i]*n[1][i];
+          L2 += n[2][i]*n[2][i];
+	}
+   L0 = sqrt(L0);
+   L1 = sqrt(L1);
+   L2 = sqrt(L2);
+	for(int i=0; i<3; i++){
+			 n[0][i] = n[0][i]/L0;
+		    n[1][i] = n[1][i]/L1;
+		    n[2][i] = n[2][i]/L2;
+	}
+   
+   
+}
+
+void OrbitalMotion::FinalizeInterpolation()
+{
+   gsl_spline_free (spline1);
+   gsl_interp_accel_free (acc1);
+   gsl_spline_free (spline2);
+   gsl_interp_accel_free (acc2);
+   gsl_spline_free (spline3);
+   gsl_interp_accel_free (acc3);
+   gsl_spline_free (spline4);
+   gsl_interp_accel_free (acc4);
+   gsl_spline_free (spline5);
+   gsl_interp_accel_free (acc5);
+   gsl_spline_free (spline6);
+   gsl_interp_accel_free (acc6);
+   gsl_spline_free (spline7);
+   gsl_interp_accel_free (acc7);
+   gsl_spline_free (spline8);
+   gsl_interp_accel_free (acc8);
+   gsl_spline_free (spline9);
+   gsl_interp_accel_free (acc9);
+   
+}
 	
 }// end of the namespace

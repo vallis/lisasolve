@@ -60,7 +60,13 @@ class ComputeTDIfreq{
       /*** Computes long wavelength approximation, parameters are the same as for ComputeTDIfreqXYZ */                        
       void ComputeLWfreqXYZ(int sz, double thetaS, double phiS, double* &tf, double* &freq, \
                               std::complex<double>* &hfp, std::complex<double>* &hfc, \
-                              std::complex<double>* &X, std::complex<double>* &Y, std::complex<double>* &Z);           
+                              std::complex<double>* &X, std::complex<double>* &Y, std::complex<double>* &Z);   
+                              
+      void ComputeTDIfreqXYZ_NumOrb(int sz, double thetaS, double phiS, double* &tf, double* &freq, \
+                              std::complex<double>* &hfp, std::complex<double>* &hfc, \
+                              int szOrb, double* &torb,  double* &x1, double* &y1, double* &z1, double* &x2, double* &y2, double* &z2,\
+                              double* &x3, double* &y3, double* &z3,\
+                              std::complex<double>* &X, std::complex<double>* &Y, std::complex<double>* &Z);                         
                               
       /*** This is where you should say what LISA orbit you want to use, sofar only "aLISA" is available */                        
       void ChooseConfiguration(std::string config);          
