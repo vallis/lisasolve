@@ -299,6 +299,138 @@ void ComputeTDIfreq::ComputeLWfreqXYZ(int sz, double thetaS, double phiS, double
    
 }
 
+void ComputeTDIfreq::ComputeTDIfreqXYZ_NumOrb(int sz, double thetaS, double phiS, double* &tf, double* &freq, \
+                        std::complex<double>* &hfp, std::complex<double>* &hfc, \
+                        int szOrb, double* &torb,  double* &x1, double* &y1, double* &z1, double* &x2, double* &y2, double* &z2,\
+                        double* &x3, double* &y3, double* &z3,\
+                        std::complex<double>* &X, std::complex<double>* &Y, std::complex<double>* &Z)
+{
+
+    double cS = cos(thetaS);
+    double sS = sin(thetaS);
+       
+    double cSp = cos(phiS);
+    double sSp = sin(phiS);
+
+   // note that k = -n, where k is propagation vector and n is sky location
+    k[0] = -sS*cSp; 
+    k[1] = -sS*sSp;
+    k[2] = -cS;
+
+    uhat[0] = cS*cSp;
+    uhat[1] = cS*sSp;
+    uhat[2] = -sS;
+
+    vhat[0] = sSp;
+    vhat[1] = -cSp; 
+    vhat[2] = 0.0;
+    
+    OrbitalMotion orbit(L, year);
+    
+    orbit.InitiateSplinInterpolation(szOrb, torb, x1, y1, z1, x2, y2, z2, x3, y3, z3); 
+     
+  
+    double tm, fr;
+    double nU, nV;
+    std::complex<double> fct;
+    std::complex<double> Dplr;
+    std::complex<double> Al1, Al2, Al3;
+    std::complex<double> Al_1, Al_2, Al_3;
+    std::complex<double> img(0.0, 1.0);
+    std::complex<double> y123, y1_32, y231, y3_21, y2_13, y312;
+    std::complex<double> ex0, ex1, ex2;
+    double omL0, omL1, omL2;
+    double L0, L1, L2;
+    
+  //  std::ofstream fout2718("Data/CheckFpc.dat");
+    for (int i=0; i<sz; i++){
+       tm = tf[i];
+       //std::cout << std::setprecision(15) << i << "   "  << tm << std::endl;
+       fr = LISAWP_PI*freq[i]; 
+       
+       if (freq[i] >= fMin && freq[i] <= fMax){
+          orbit.NumericalData(tm, p, n, L0, L1, L2);    
+          //std::cout << tm << "  " << L0 << "   " << L1 << "   " << L2 << std::endl;         
+          for(int j =0; j<3; j++){
+             kp[j] = 0.; 
+             kn[j] = 0.;       
+ 		       nU = 0.0;
+ 		       nV = 0.0;        
+ 		       for(int ii=0; ii<3; ii++){
+ 		           kp[j] += k[ii]*p[j][ii];
+                 kn[j] += k[ii]*n[j][ii];
+ 			        nU += uhat[ii]*n[j][ii];
+ 			        nV += vhat[ii]*n[j][ii];
+		       }
+		       u[j] = 0.5*(nU*nU - nV*nV);
+ 		       v[j] = nU*nV;
+          }
+      /*   fout2718 << std::setprecision(15) << tm << "  ";
+         for (int bk=0; bk<3; bk++){
+           for (int bk2=0; bk2<3; bk2++){
+             fout2718 << p[bk][bk2] << "   ";
+           }
+         }
+         fout2718 << std::endl;
+         exit(0);*/
+      // fout2718 << std::setprecision(15) << tm << "   " << u[0] << "  " << u[1] << "  " << u[2] << \
+                     "   " << v[0] << "  " << v[1] << "  " << v[2] << "   "\
+     //                 <<  kn[0] << "  " << kn[1] << "  "<< kn[2] << std::endl; 
+     //                 <<  kp[0] << "  " << kp[1] << "  "<< kp[2] << std::endl; 
+       
+          fct = -img*fr*L0*(u[0]*hfp[i] + v[0]*hfc[i]);
+          Al1 = fct*SINC(fr*L0*(1.-kn[0]));
+          Al_1 = fct*SINC(fr*L0*(1.+kn[0]));
+       
+          fct = -img*fr*L1*(u[1]*hfp[i] + v[1]*hfc[i]);
+          Al2 = fct*SINC(fr*L1*(1.-kn[1]));
+          Al_2 = fct*SINC(fr*L1*(1.+kn[1]));
+       
+          fct = -img*fr*L2*(u[2]*hfp[i] + v[2]*hfc[i]);
+          Al3 = fct*SINC(fr*L2*(1.-kn[2]));
+          Al_3 = fct*SINC(fr*L2*(1.+kn[2]));
+       
+          Dplr = cos(fr*(L1 + kp[0] + kp[2])) - img*sin(fr*(L1 + kp[0] + kp[2]));
+          y123 = Al2*Dplr;
+          y3_21 = Al_2*Dplr;
+       
+          Dplr = cos(fr*(L2 + kp[0] + kp[1])) - img*sin(fr*(L2 + kp[0] + kp[1]));
+          y231 = Al3*Dplr;
+          y1_32 = Al_3*Dplr;
+         
+          Dplr = cos(fr*(L0 + kp[1] + kp[2])) - img*sin(fr*(L0 + kp[1] + kp[2]));
+          y312 = Al1*Dplr;
+          y2_13 = Al_1*Dplr;
+       
+          
+          omL0 = 2.*fr*L0;
+          omL1 = 2.*fr*L1;
+          omL2 = 2.*fr*L2;
+          
+          ex0 = cos(omL0) - img*sin(omL0);
+          ex1 = cos(omL1) - img*sin(omL1);
+          ex2 = cos(omL2) - img*sin(omL2);
+          
+          //X[i] = -4.*img*sin(omL)*(-y1_32*ex2 - y231*ex1 + y123*ex2 + y3_21*ex1);
+          X[i] = -4.*img*(sin(omL1)*ex1*(-y1_32*ex2 - y231) + sin(omL2)*ex2*(y123*ex1 + y3_21));
+         
+          Y[i] = -4.*img*(sin(omL2)*ex2*(-y2_13*ex0 - y312) + sin(omL0)*ex0*(y231*ex2 + y1_32));
+
+          Z[i] = -4.*img*(sin(omL0)*ex0*(-y3_21*ex1 - y123) + sin(omL1)*ex1*(y312*ex0 + y2_13));
+       }else{
+          X[i] = 0.0;
+          Y[i] = 0.0;
+          Z[i] = 0.0;
+       }
+       
+    }
+    
+    orbit.FinalizeInterpolation();
+    
+   // fout2718.close();
+   // exit(0);
+}
+
 double ComputeTDIfreq::SINC(double x){
    if (x == 0.){
       return(1.);

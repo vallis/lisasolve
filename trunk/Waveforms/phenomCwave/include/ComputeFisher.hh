@@ -46,6 +46,12 @@ class ComputeFisherC{
        ComputeFisherC(double arm, double oneyear, std::string config, double Fmax, double delf, double duration);
       ~ComputeFisherC();
       double ComputeRAFisher4links(BBHTemplate S, int n, double* &freq, double* &Sn, Matrix<double> &Fisher);
+      
+      double ComputeFisher4links_NumOrb(BBHTemplate S, int n, double* &freq, double* &Sn, \
+                             int szOrb, double* &torb,  double* &x1, double* &y1, double* &z1, double* &x2, \
+                             double* &y2, double* &z2, double* &x3, double* &y3, double* &z3,
+                             Matrix<double> &Fisher);
+      
       void ComputeRAFisher6links(BBHTemplate S, int n, double* &freq, double* &Sn, double** &Fisher);
       void ComputeLWFisher4links(BBHTemplate S, int n, double* &freq, double* &Sn, double** &Fisher);
       void ComputeLWFisher6links(BBHTemplate S, int n, double* &freq, double* &Sn, double** &Fisher);
@@ -67,6 +73,10 @@ class ComputeFisherC{
       
       void ComputeWaveXYZ(BBHTemplate S, int n, double* &freq, std::complex<double>* &X, std::complex<double>* &Y,\
          std::complex<double>* &Z);
+
+      void ComputeWaveXYZ(BBHTemplate S, int n, double* &freq, int szOrb, double* &torb,  double* &x1, double* &y1, double* &z1, \
+            double* &x2, double* &y2, double* &z2, double* &x3, double* &y3, double* &z3,
+            std::complex<double>* &X, std::complex<double>* &Y, std::complex<double>* &Z);   
          
       double ComputeInnerProd(int sz, std::complex<double>* &x, std::complex<double>* &y, double* &freq, double* &Sn);   
       

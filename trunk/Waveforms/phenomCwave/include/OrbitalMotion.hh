@@ -26,6 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "Constants.hh"
 #include <vector>
 #include <complex>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
 
 
 /** Class OrbitalMotion
@@ -51,14 +53,46 @@ namespace LISAWP{
       // Not complete yet
       void L1ToyModel(double T_rot, double t, double* &R, double** &p, double** &n);
                                                      
+		void NumericalData(double t, double** &p, double** &n, double &L0, double &L1, double &L2);
 		
+		void InitiateSplinInterpolation(int sz, double* &torb,  double* &x1, double* &y1, double* &z1, double* &x2, double* &y2, double* &z2,\
+            double* &x3, double* &y3, double* &z3);
+      
+      void FinalizeInterpolation();
 		
 	private:
    		double L;
    		double year;
          double Omega;
          double RAU;
-
+         
+         gsl_interp_accel *acc1;          
+         gsl_spline *spline1;
+         
+         gsl_interp_accel *acc2;          
+         gsl_spline *spline2;
+         
+         gsl_interp_accel *acc3;          
+         gsl_spline *spline3;
+         
+         gsl_interp_accel *acc4;
+         gsl_spline *spline4;
+         
+         gsl_interp_accel *acc5;
+         gsl_spline *spline5;
+         
+         gsl_interp_accel *acc6;
+         gsl_spline *spline6;
+         
+         gsl_interp_accel *acc7;
+         gsl_spline *spline7;
+         
+         gsl_interp_accel *acc8;
+         gsl_spline *spline8;
+         
+         gsl_interp_accel *acc9;
+         gsl_spline *spline9;
+         
 };
 
 } //end of the namespace

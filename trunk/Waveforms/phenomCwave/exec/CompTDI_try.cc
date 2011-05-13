@@ -39,123 +39,128 @@ using namespace LISAWP;
 int main(){
    
    BBHTemplate H;
-   double Dl = 6.e9; // 6 Gpc
-   double arm = 5.e9/LISAWP_C_SI; // LISA's arm in sec
+   double arm = 1.e9/LISAWP_C_SI; // LISA's arm in sec
    std::cout << "arm = " << arm << std::endl;
    double year = 31457280.;
    std::string spr = "    ";
    
-   H.m1 = 1.e6;
-   H.m2 = 1.e6;
-   H.chi = 0.0;
-   H.dist = Dl;
-   H.iota = 0.0;//LISAWP_PI/3.;
-   H.phi0 = 0.0;
-   H.psi = 0.0;
+   H.m1 = 1.e4;
+   H.m2 = 1.e4;
+   H.chi = 0.4;
+   H.dist = 6.e9;
+   H.iota = 0.87;//LISAWP_PI/3.;
+   H.phi0 = 0.3;
+   H.psi = 1.1;
    H.thetaS = 0.5*LISAWP_PI - 1.0;
    H.phiS = 2.0;
+   H.dist = 6.e9;
+   H.tc = 0.7*year;
    std::cout << "beta = " <<  H.thetaS  << std::endl;
    
    
    H.ComputeAuxParams();
    
-   double Fmin = 1.e-4;
-   double Fmax = 1.e-1;
-   double df = 1.e-5;
-   double dt = 15.0;
-   //dt = dt/2.;
-   double Tobs = 31457280.;
-   //Tobs *= 0.5;
+   double Fmin = 1.e-5;
+   double Fmax = 1.e0;
+   double df = 1.e-6;
+   double Tobs = year;
+   double tc = H.tc;
    
-   Fmax = 1./(2.*dt); // assumes samling rate 15sec
-   df = 1./Tobs;  // 1/year
-   
-   // Estimate roughly F_min based on tc:
-   double tshift = 1.00003e6;  // -> difference in tc with tdi 30 sec.
-   double tc = Tobs-tshift; // almost 1 year
-   H.tc = tc;
-   
-   double ThetaQ = pow(0.2*H.eta/H.Mt*tc, -0.25);
-   double x = 0.25*ThetaQ*( 1. + (743./4032. + 11.*H.eta/48.)*ThetaQ );
-   Fmin = pow(x, 1.5)/(LISAWP_PI*H.Mt);
-   std::cout  << "Fmin = " << Fmin << std::endl;
-   std::cout << "Fmax = " << Fmax << std::endl;
-   
-   //!!!!!! NEED to produce warning if the sampling rate is too low !!!!!!!
-   
-   
-   std::cout << "chirp mass = " << H.Mc << std::endl;
-   Dl *= (LISAWP_PC_SI/LISAWP_C_SI); // dist in sec;
-   
-   PhenomCwave PW(Fmin, Fmax, df);
-   
-   std::complex<double>* Hplus = NULL;
-   std::complex<double>* Hcross = NULL;
    int n = (int) floor (Fmax / df)+1;
    double* freq;
    freq = new double[n];
-   for (int i=0; i<n; i++ ){
-       freq[i]=(double)i*df;
+   for (int i=0; i<n; i++ )
+   {
+      freq[i]=(double)i*df;
    }
    
-   int ck = PW.ComputeHpHc(H, n, freq, Hplus, Hcross);
-   std::cout << "n = " << n << "   " << ck << std::endl;
-     
+   double ThetaQ = pow(0.2*H.eta/H.Mt*H.tc, -0.25);
+   double x = 0.25*ThetaQ*( 1. + (743./4032. + 11.*H.eta/48.)*ThetaQ );
+   double fmin = pow(x, 1.5)/(LISAWP_PI*H.Mt);
+   double  Dl = H.dist * (LISAWP_PC_SI/LISAWP_C_SI);
+   
    double* tm;
    tm = new double[n];
-   
-   for (int i=0; i<n; i++ )
-   {
-      tm[i] = 0.0;
-   }
-   //std::cout << freq[10] << "   " << tm[0] << "  " << H22[1] << std::endl;
-   PW.ComputeTime(H, freq, tm, n);
-   std::ofstream fout27("Data/TimeTest.dat");
-   for (int i=0; i<n; i++ )
-   {
-      //tm[i] += (5.e6-tshift);
-      fout27 << std::setprecision(15) << (double)i*dt << spr << tm[i] << spr << freq[i] << std::endl;
-      
-   }
-   fout27.close();
-   // apply polarization rotation and time shift
+
    double cpsi = cos(2.*H.psi);
    double spsi = sin(2.*H.psi);
    std::complex<double> tmp;
    std::complex<double> img(0.0, 1.0);
-   double shiftPh, fr;
+   double shiftPh, fr, fmax1;
+   if(tc > Tobs){
+       ThetaQ = pow(0.2*H.eta/H.Mt*(H.tc-Tobs), -0.25);
+       x = 0.25*ThetaQ*( 1. + (743./4032. + 11.*H.eta/48.)*ThetaQ );
+       fmax1 = pow(x, 1.5)/(LISAWP_PI*H.Mt);      
+   }
+   else{
+       fmax1 = Fmax;
+   }
+   double tshift = Tobs - H.tc;
    
-  
+   
+   PhenomCwave PW_C(fmin, fmax1, df);
+   std::complex<double>* Hplus = NULL;
+   std::complex<double>* Hcross = NULL;
+   Hplus = new std::complex<double>[n];
+   Hcross = new std::complex<double>[n];
+   
+   int sz = PW_C.ComputeHpHc(H, n, freq, Hplus, Hcross);
+   // Apply polarization angle and timeshift
+   //std::ofstream foutH("Data/TestH.dat");
    for (int i=0; i<n; i++ )
    {
-      fr=freq[i];
+      fr=i*df;
+     //  foutH << fr << "    " << abs(Hplus[i]) << std::endl;
       shiftPh = tshift*LISAWP_TWOPI*fr;
       tmp = Hplus[i];
       Hplus[i] = (Hplus[i]*cpsi + Hcross[i]*spsi)*(cos(shiftPh) + img*sin(shiftPh));
       Hcross[i] = (-tmp*spsi + Hcross[i]*cpsi)*(cos(shiftPh) + img*sin(shiftPh));
+      
    }
+   //foutH.close();
    
-   int datSz = 2*(n-1);
+   PW_C.ComputeTime(H, freq, tm, n);
    
    
- /*  std::ofstream fout26("Data/HplHcr.dat");
-   double* HpT;
-   double* HcT;
-   HpT = new double[datSz];
-   HcT = new double[datSz];
-   crfft1d Backward(datSz, Hplus, HpT);
-   Backward.fft(Hplus, HpT);
-   Backward.fft(Hcross, HcT);
-   for (int i=0; i<datSz; i++){
-        fout26 << std::setprecision(15) << (double)i*dt << spr  << HpT[i] << spr << HcT[i] << std::endl;
-   }
-   fout26.close();
-   */
+   // reading the numerical Orbit
    
-   // Compute TDI in freq domain
-   
-   ComputeTDIfreq fTDI(arm, year);
+   double* x1;
+   double* x2;
+   double* x3;
+   double* y1;
+   double* y2;
+   double* y3;
+   double* z1;
+   double* z2; 
+   double* z3;
+   double* torb;
     
+   int Orsz = 17364;
+   torb = new double[Orsz];
+   x1 = new double[Orsz];
+   y1 = new double[Orsz];
+   z1 = new double[Orsz];
+   x2 = new double[Orsz];
+   y2 = new double[Orsz];
+   z2 = new double[Orsz];
+   x3 = new double[Orsz];
+   y3 = new double[Orsz];
+   z3 = new double[Orsz];
+   
+   std::ifstream finOr("Data/Orbits_HaloL1-Pos.txt");
+   for (int i=0; i<Orsz; i++){
+       finOr >> torb[i] >> x1[i] >> y1[i] >> z1[i] >> x2[i] >> y2[i] >> z2[i] >> x3[i] >> y3[i] >> z3[i];
+   }
+   finOr.close();
+   
+   
+   // now tdi...
+   
+   ComputeTDIfreq tdi(arm, year);
+   tdi.ChooseConfiguration("aLISA");
+   tdi.fMin = fmin;
+   tdi.fMax = fmax1;
+   
    std::complex<double>* X;
    std::complex<double>* Y;
    std::complex<double>* Z;
@@ -163,50 +168,48 @@ int main(){
    Y = new  std::complex<double>[n];
    Z = new  std::complex<double>[n];
    
-   fTDI.ChooseConfiguration("aLISA");
-   fTDI.ComputeTDIfreqXYZ(n,  H.thetaS, H.phiS, tm, freq, Hplus, Hcross, X, Y, Z);
-   // Or one can compute Long wavelength limit:
-   //fTDI.ComputeLWfreqXYZ(n,  H.thetaS, H.phiS, tm, freq, Hplus, Hcross, X, Y, Z);
-   std::cout << "TDIs computed\n";
+   tdi.ComputeTDIfreqXYZ_NumOrb(n, H.thetaS, H.phiS, tm, freq, Hplus, Hcross, Orsz, torb, x1, y1, z1, x2, y2, z2, x3, y3, z3, X, Y, Z);
    
-   // shifting the waveform...
-   /*for (int i=0; i<n; i++){
-      
-      X[i] = X[i] * (cos(shiftPh) + img*sin(shiftPh));
-   }*/
-   
-   // transforming in time domain
-   
-   double* XT;
-   XT = new double[datSz];
-   double* YT;
-   YT = new double[datSz];
-   double* ZT;
-   ZT = new double[datSz];
-   crfft1d Backward(datSz, X, XT);
-   Backward.fft(X, XT);
-   Backward.fft(Y, YT);
-   Backward.fft(Z, ZT);
-   std::cout << "fft computed, recording ...\n";
+    for (int i=0; i<n; i++){
+         if (freq[i] > fmin ){
+            if (abs(X[i]) == 0.0){
+                fmax1 = freq[i];
+                break;
+            }
+         }
+      }
+       std::cout << "Freq. range of the signal (after): " << fmin << "   " << fmax1 << std::endl; 
    
    
-   std::ofstream fout("Data/TDI_T.dat");
+   std::ofstream fout("Data/TDI_L1_F.dat");
    
-   for (int i=0; i<datSz; i++){
-      fout << std::setprecision(15) << (double)i*dt << "    "  << XT[i] << "   " << YT[i] << "   " << ZT[i] <<  std::endl;
+   for (int i=0; i<n; i++){
+      fr=(double)i*df;
+      fout << std::setprecision(15) << fr << "    "  << abs(X[i]) << "   " << abs(Y[i]) << "   " << abs(Z[i]) <<  std::endl;
    }
    fout.close();
    
-   //delete [] HpT;
-   //delete [] HcT;
+   
+   delete [] Hplus;
+   delete [] Hcross;
+   delete [] tm;
+   delete [] freq;
+   
+   delete [] torb;
+   delete [] x1;
+   delete [] y1;
+   delete [] z1;
+   delete [] x2;
+   delete [] y2;
+   delete [] z2;
+   delete [] x3;
+   delete [] y3;
+   delete [] z3;
    delete [] X;
    delete [] Y;
    delete [] Z;
-   delete [] freq;
-   delete [] tm;
-   delete [] Hplus;
-   delete [] Hcross; 
-
+   
+   
    return(0);
    
 }

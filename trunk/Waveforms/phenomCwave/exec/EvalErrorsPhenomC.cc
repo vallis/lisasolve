@@ -30,6 +30,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "NoiseModels.hh"
 #include "LinAlg.hh"
 #include <gsl/gsl_linalg.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
 
 
 /*** THis script takes as an input catalog of SMBHB observations and computes inverse Fisher matrix. It uses 
@@ -72,7 +74,8 @@ int main(int argc, char* argv[]){
     
     
     
-    
+    std::string noiseFile;
+    int nsz;
     std::ifstream fin1(FilePar.c_str());
     if(!fin1){
          std::cerr << "Cannot open the parameter file " << FilePar << std::endl;
@@ -83,7 +86,7 @@ int main(int argc, char* argv[]){
     fin1 >> realId;
     fin1 >> q_th;
     fin1 >> SNRth;
-    fin1 >> noise;
+    fin1 >> noise >> noiseFile >> nsz;
     
     fin1.close();
     
@@ -119,8 +122,110 @@ int main(int argc, char* argv[]){
         std::cout << "using C2 config \n";
         arm = 1.e9/LISAWP_C_SI;
      }
+     if (noise == "L1"){
+        std::ifstream finN(noiseFile.c_str());
+        if(!finN){
+              std::cerr << "Cannot open the parameter file " << noiseFile << std::endl;
+      	     exit(1);
+        }
+        
+        double* ftmp;
+        double* Stmp;
+        ftmp = new double[nsz];
+        Stmp = new double[nsz];
+        for (int i=0; i<nsz; i++){
+           finN >> ftmp[i] >> Stmp[i]; 
+        }
+        finN.close();
+       
+        gsl_interp_accel *acc  = gsl_interp_accel_alloc ();
+        gsl_spline *spline = gsl_spline_alloc (gsl_interp_cspline, nsz);
+        gsl_spline_init (spline, ftmp, Stmp, nsz);
+        
+        for (int i=0; i<n; i++){
+           S_n[i] = gsl_spline_eval(spline, freq[i], acc);
+        }
+        
+        gsl_spline_free (spline);
+        gsl_interp_accel_free (acc);
+        delete [] ftmp;
+        delete [] Stmp;
+        
+     }
      
+    /* std::ofstream fout2254("Data/NoiseTest.dat");
+     for (int i=0; i<n; i++){
+        fout2254 << std::setprecision(15) << freq[i] << spr << S_n[i] << std::endl;
+     }
+     fout2254.close();
+     exit(0); */
+     
+     
+     // Check orbital interpolation
+    double t=0.0;
+    double* x1;
+    double* x2;
+    double* x3;
+    double* y1;
+    double* y2;
+    double* y3;
+    double* z1;
+    double* z2; 
+    double* z3;
+    double* torb;
+    
+    int Orsz = 17364;
+    torb = new double[Orsz];
+    x1 = new double[Orsz];
+    y1 = new double[Orsz];
+    z1 = new double[Orsz];
+    x2 = new double[Orsz];
+    y2 = new double[Orsz];
+    z2 = new double[Orsz];
+    x3 = new double[Orsz];
+    y3 = new double[Orsz];
+    z3 = new double[Orsz]; 
+    
+    std::ifstream finOr("Data/Orbits_HaloL1-Pos.txt");
+    for (int i=0; i<Orsz; i++){
+        finOr >> torb[i] >> x1[i] >> y1[i] >> z1[i] >> x2[i] >> y2[i] >> z2[i] >> x3[i] >> y3[i] >> z3[i];
+    }
+    finOr.close();
+    for (int i=1; i<Orsz; i++){
+         if (torb[i]-torb[i-1] <= 0.){
+            std::cout << "negative " << i << spr << torb[i] << spr << torb[i-1] << std::endl;
+         }
+    }
+    
+/*     OrbitalMotion nom(1.e9/LISAWP_C_SI, year);
+    
+    
+    nom.InitiateSplinInterpolation(Orsz, torb, x1, y1, z1, x2, y2, z2, x3, y3, z3);
+    
+    std::ofstream fout2330("Data/CheckOrbitalINterp.dat");
+    double** pos;
+    double** nn;
+    pos = new double*[3];
+    nn = new double*[3];
+    for (int i=0; i<3; i++){
+       pos[i] = new double[3];
+       nn[i] = new double[3];
+    }
+    double L0, L1, L2;
+    while (t<torb[Orsz-1]){
+       nom.NumericalData(t, pos, nn, L0, L1, L2);
+       fout2330 << std::setprecision(15) << t << spr << pos[0][0] << spr << pos[0][1] << spr << pos[0][2] << spr <<\
+               pos[1][0] << spr << pos[1][1] << spr << pos[1][2] << spr << pos[2][0] << spr << pos[2][1] << spr << pos[2][2] <<\
+               spr << nn[0][0] << spr << nn[0][1] << spr << nn[0][2] << spr << nn[1][0] << spr << nn[1][1] << spr << nn[1][2] << spr <<\
+               nn[2][0] << spr << nn[2][1] << spr << nn[2][2] << std::endl;
+       t += 150.;
+    }
+    fout2330.close();
+  */  
+    
+       // exit(0); 
     std::string config = "aLISA";
+    config = "L1";
     ComputeFisherC FishC(arm, year, config, Fmax, df, Tobs);
    
     
@@ -184,14 +289,17 @@ int main(int argc, char* argv[]){
        H.ComputeAuxParams();
       // std::cout << "after\n";
       // std::cout << H.M << spr << H.q << spr <<  H.m1 << spr << H.m2 << spr << H.Mc/LISAWP_MTSUN_SI << spr << H.eta << std::endl;
+         std::cout << H.M << spr << H.eta << spr << H.chi << spr << H.thetaS << spr << H.phiS << spr <<\
+            H.tc << spr << H.phi0 << spr << H.iota << spr << H.psi << spr << H.dist << std::endl;
       // std::cout << H.iota << spr << H.psi << spr << H.q << std::endl;
       // exit(0);
        std::cout << M1/Mtot *a1 << spr <<  M2/Mtot *a2 << spr << a1 << spr << a2 << std::endl; 
-       std::cout << "M =  " << H.M << "  mass ratio = " << H.q << "  spin =   " << H.chi << std::endl;
+       //std::cout << "M =  " << H.M << "  mass ratio = " << H.q << "  spin =   " << H.chi << std::endl;
        if (real_id == realId && H.q >=  q_th){
-         SNR2 = FishC.ComputeRAFisher4links(H, n, freq, S_n, Fisher);
+         //SNR2 = FishC.ComputeRAFisher4links(H, n, freq, S_n, Fisher);
+         SNR2 = FishC. ComputeFisher4links_NumOrb(H, n, freq, S_n, Orsz, torb,  x1, y1, z1, x2, y2, z2, x3, y3, z3, Fisher);
          std::cout << "SNR^2 = "<< SNR2 << std::endl;
-        // exit(0);
+         //exit(0);
       
          if (sqrt(SNR2) >= SNRth){
              for (int i=0; i<dim; i++){
@@ -238,7 +346,7 @@ int main(int argc, char* argv[]){
               << sqrt(IFisher(7,7)) << spr << sqrt(IFisher(8,8)) << spr << sqrt(IFisher(9,9)) << std::endl;
          }// end of SNR-if
        }// end of the q-if
-      //exit(0);
+     // exit(0);
       
     }// end of the signal loop
     
@@ -255,5 +363,16 @@ int main(int argc, char* argv[]){
 
     delete [] freq;
     delete [] S_n;
+    delete [] x1;
+    delete [] x2;
+    delete [] x3;
+    delete [] y1;
+    delete [] y2;
+    delete [] y3;
+    delete [] z1;
+    delete [] z2; 
+    delete [] z3;
+    delete [] torb;
+    
    
 }
