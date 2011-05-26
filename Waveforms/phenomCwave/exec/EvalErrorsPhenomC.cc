@@ -122,6 +122,16 @@ int main(int argc, char* argv[]){
         std::cout << "using C2 config \n";
         arm = 1.e9/LISAWP_C_SI;
      }
+     if (noise == "C4"){
+         NM1.miniLISA_C4X(n, freq, S_n);
+         std::cout << "using C4 config \n";
+         arm = 3.e9/LISAWP_C_SI;
+     }
+     if (noise == "C5"){
+         NM1.miniLISA_C5X(n, freq, S_n);
+         std::cout << "using C5 config \n";
+         arm = 2.e9/LISAWP_C_SI;
+     }
      if (noise == "L1"){
         std::ifstream finN(noiseFile.c_str());
         if(!finN){
@@ -153,7 +163,7 @@ int main(int argc, char* argv[]){
         
      }
      
-    /* std::ofstream fout2254("Data/NoiseTest.dat");
+  /*   std::ofstream fout2254("Data/NoiseTest.dat");
      for (int i=0; i<n; i++){
         fout2254 << std::setprecision(15) << freq[i] << spr << S_n[i] << std::endl;
      }
@@ -162,7 +172,9 @@ int main(int argc, char* argv[]){
      
      
      // Check orbital interpolation
+     
     double t=0.0;
+  
     double* x1;
     double* x2;
     double* x3;
@@ -173,8 +185,8 @@ int main(int argc, char* argv[]){
     double* z2; 
     double* z3;
     double* torb;
-    
     int Orsz = 17364;
+   if (noise == "L1"){
     torb = new double[Orsz];
     x1 = new double[Orsz];
     y1 = new double[Orsz];
@@ -196,6 +208,8 @@ int main(int argc, char* argv[]){
             std::cout << "negative " << i << spr << torb[i] << spr << torb[i-1] << std::endl;
          }
     }
+    
+  }
     
 /*     OrbitalMotion nom(1.e9/LISAWP_C_SI, year);
     
@@ -225,7 +239,9 @@ int main(int argc, char* argv[]){
     
        // exit(0); 
     std::string config = "aLISA";
-    config = "L1";
+    if (noise == "L1"){
+        config = "L1";
+     }
     ComputeFisherC FishC(arm, year, config, Fmax, df, Tobs);
    
     
@@ -295,9 +311,14 @@ int main(int argc, char* argv[]){
       // exit(0);
        std::cout << M1/Mtot *a1 << spr <<  M2/Mtot *a2 << spr << a1 << spr << a2 << std::endl; 
        //std::cout << "M =  " << H.M << "  mass ratio = " << H.q << "  spin =   " << H.chi << std::endl;
-       if (real_id == realId && H.q >=  q_th){
-         //SNR2 = FishC.ComputeRAFisher4links(H, n, freq, S_n, Fisher);
-         SNR2 = FishC. ComputeFisher4links_NumOrb(H, n, freq, S_n, Orsz, torb,  x1, y1, z1, x2, y2, z2, x3, y3, z3, Fisher);
+       //if (real_id == realId && H.q >=  q_th){
+       if (H.q >=  q_th){    
+         
+         if (noise == "L1"){
+            SNR2 = FishC. ComputeFisher4links_NumOrb(H, n, freq, S_n, Orsz, torb,  x1, y1, z1, x2, y2, z2, x3, y3, z3, Fisher);
+         }else{
+            SNR2 = FishC.ComputeRAFisher4links(H, n, freq, S_n, Fisher);
+         }
          std::cout << "SNR^2 = "<< SNR2 << std::endl;
          //exit(0);
       
@@ -341,6 +362,7 @@ int main(int argc, char* argv[]){
               << spr << thetaS << spr << phL << spr << thL << spr << phi0 << spr << tc << spr << a1 << spr << a2\
               << spr << thS1 << spr << thS2 << spr << phS1 << spr << phS2 << spr << per << spr << e << spr << DL0\
               << spr <<  Mc << spr << eta << spr << thBS1 << spr << thBS2 << spr << phBS1 << spr << phBS2 << spr \
+              << H.chi << spr << H.M << spr\
               << SNR2 << spr << sqrt(IFisher(0,0))/H.M << spr << sqrt(IFisher(1,1)) << spr << sqrt(IFisher(2,2)) << spr \
               << sqrt(IFisher(3,3)) << spr << sqrt(IFisher(4,4)) << spr << sqrt(IFisher(5,5)) << spr << sqrt(IFisher(6,6)) << spr\
               << sqrt(IFisher(7,7)) << spr << sqrt(IFisher(8,8)) << spr << sqrt(IFisher(9,9)) << std::endl;
@@ -363,6 +385,7 @@ int main(int argc, char* argv[]){
 
     delete [] freq;
     delete [] S_n;
+  if (noise == "L1"){
     delete [] x1;
     delete [] x2;
     delete [] x3;
@@ -373,6 +396,7 @@ int main(int argc, char* argv[]){
     delete [] z2; 
     delete [] z3;
     delete [] torb;
+  }
     
    
 }
