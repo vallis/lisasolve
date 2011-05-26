@@ -53,7 +53,7 @@ void OrbitalMotion::EccentricLISAMotion(double kappa0, double lambda0, double t,
 		double ecc = 0.00964838; // hardcoded
 		
       double fct = 1./(2.0*sqrt(3.));
-		for(int i=0; i<3; i++){
+		for(int i=0; i<3; i++){ // s/c index
    			q[i][0] = ( sin(alpha)*cos(alpha)*sin(xi[i]) - \
    				(1.+ sin(alpha)*sin(alpha))*cos(xi[i])  )*fct;
    			q[i][1] = ( sin(alpha)*cos(alpha)*cos(xi[i]) - \

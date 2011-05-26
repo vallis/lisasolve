@@ -50,6 +50,10 @@ namespace LISAWP{
       
       // Not complete yet
       void miniLISA_C2X(int sz, double* &freq, double* &S_n);
+      
+      void miniLISA_C4X(int sz, double* &freq, double* &S_n);
+      
+      void miniLISA_C5X(int sz, double* &freq, double* &S_n);
                                                      
 		
 		

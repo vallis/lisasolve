@@ -216,4 +216,121 @@ void NoiseModels::miniLISA_C2X(int sz, double* &freq, double* &S_n)
    
 }
 
+void NoiseModels::miniLISA_C4X(int sz, double* &freq, double* &S_n)
+{
+   /*
+   Sacc = 6.e-48 *(1./fr**2)
+   Ssn = 2.07e-37*fr**2.
+   Som = 2.81e-38*fr**2.
+   S_instC2 = 16. * np.sin(2.*pi*fr*L)**2 * ( Ssn + Som + (3. + np.cos(4.*pi*fr*L)) * Sacc ) */
+   
+     double Sacc = 6.e-48;
+     double Ssn =  2.07e-37;
+     double Som = 2.81e-38;
+
+     double L = 3.e9/LISAWP_C_SI;
+     double omL, fr2, fr;
+     double Sgal = 0.0;
+     for (int i=0; i<sz; i++){
+        omL = LISAWP_TWOPI*freq[i]*L;
+        fr2 = pow(freq[i], 2.);
+        S_n[i] = 16.*pow(sin(omL), 2.) * ((Ssn + Som)*fr2 + (3. + cos(2.*omL)) * Sacc/fr2 );    
+     }
+
+     if(gal){
+         double L4 = L*L*4.;
+         double om;
+         for (int i=0; i<sz; i++){
+            fr = freq[i];
+            om = LISAWP_TWOPI*fr;
+            omL = om*L;
+            Sgal = 0.0;
+            if ((fr>=1.e-4) && (fr < 5.01e-4)){
+                Sgal = L4 * pow(om*sin(omL), 2.)*0.6 * 1.3516e-43  * pow(fr, -2.1);
+            }
+            if ((fr>=5.01e-4) && (fr < 2.07e-3)){
+               Sgal = L4 * pow(om*sin(omL), 2.)* 0.6 * 1.4813e-47 * pow(fr, -3.3);
+            }
+            if ( (fr>=2.07e-3) && (fr < 3.4e-3)){
+               Sgal = L4 * pow(om*sin(omL), 2.)* 0.6 * 1.17757e-52 * pow(fr, -5.2);
+            }
+            if ((fr>=3.4e-3) && (fr <= 5.2e-3)){
+               Sgal = L4 * pow(om*sin(omL), 2.)* 0.6 * 2.7781e-62 * pow(fr, -9.1);
+            }
+            S_n[i] += Sgal;
+         }
+     }
+   
+   /* 4.*L*L*(2.*pi*fr)**2. *3./5. * np.sin(2.*pi*L*fr)*np.sin(2.*pi*L*fr) * 
+   (
+   	np.piecewise(fr, (fr>=4.5e-4) & (fr < 5.3e-4), [lambda f: 1.e-13 * f**7, 0]) +\
+   	np.piecewise(fr, (fr>=5.3e-4) & (fr < 2.2e-3), [lambda f: 2.9714e-47 * f**(-3.235), 0]) +\
+   	np.piecewise(fr, (fr>=2.2e-3) & (fr < 4.e-3), [lambda f: 1.517e-51 * f**(-4.85), 0]) +\
+   	np.piecewise(fr, (fr>=4e-3) & (fr < 5.88e-3), [lambda f: 6.706e-58 * f**(-7.5), 0])
+   		)
+   */
+   
+}
+
+void NoiseModels::miniLISA_C5X(int sz, double* &freq, double* &S_n)
+{
+   /*
+   Sacc = 6.e-48 *(1./fr**2)
+   Ssn = 2.05e-38*fr**2.
+   Som = 2.81e-38*fr**2.
+   S_instC2 = 16. * np.sin(2.*pi*fr*L)**2 * ( Ssn + Som + (3. + np.cos(4.*pi*fr*L)) * Sacc ) */
+   
+     double Sacc = 6.e-48;
+     double Ssn =  2.05e-38;
+     double Som = 2.81e-38;
+
+     double L = 2.e9/LISAWP_C_SI;
+     double omL, fr2, fr;
+     double Sgal = 0.0;
+     for (int i=0; i<sz; i++){
+        omL = LISAWP_TWOPI*freq[i]*L;
+        fr2 = pow(freq[i], 2.);
+        S_n[i] = 16.*pow(sin(omL), 2.) * ((Ssn + Som)*fr2 + (3. + cos(2.*omL)) * Sacc/fr2 );    
+     }
+
+     if(gal){
+         double L4 = L*L*4.;
+         double om;
+         for (int i=0; i<sz; i++){
+            fr = freq[i];
+            om = LISAWP_TWOPI*fr;
+            omL = om*L;
+            Sgal = 0.0;
+            if ( (fr>=1.8e-4) && (fr < 2.4e-4)){
+                Sgal = L4 * pow(om*sin(omL), 2.)*0.6 * 5.4e-36;
+            } 
+            if ((fr>=2.4e-4) && (fr < 5.01e-4)){
+                Sgal = L4 * pow(om*sin(omL), 2.)*0.6 * 1.3516e-43  * pow(fr, -2.1);
+            }
+            if ((fr>=5.01e-4) && (fr < 2.07e-3)){
+               Sgal = L4 * pow(om*sin(omL), 2.)* 0.6 * 1.4813e-47 * pow(fr, -3.3);
+            }
+            if ( (fr>=2.07e-3) && (fr < 3.4e-3)){
+               Sgal = L4 * pow(om*sin(omL), 2.)* 0.6 * 1.17757e-52 * pow(fr, -5.2);
+            }
+            if ((fr>=3.4e-3) && (fr <= 5.2e-3)){
+               Sgal = L4 * pow(om*sin(omL), 2.)* 0.6 * 2.7781e-62 * pow(fr, -9.1);
+            }
+            S_n[i] += Sgal;
+         }
+     }
+   
+   /* 4.*L*L*(2.*pi*fr)**2. *3./5. * np.sin(2.*pi*L*fr)*np.sin(2.*pi*L*fr) * 
+   (
+   	np.piecewise(fr, (fr>=4.5e-4) & (fr < 5.3e-4), [lambda f: 1.e-13 * f**7, 0]) +\
+   	np.piecewise(fr, (fr>=5.3e-4) & (fr < 2.2e-3), [lambda f: 2.9714e-47 * f**(-3.235), 0]) +\
+   	np.piecewise(fr, (fr>=2.2e-3) & (fr < 4.e-3), [lambda f: 1.517e-51 * f**(-4.85), 0]) +\
+   	np.piecewise(fr, (fr>=4e-3) & (fr < 5.88e-3), [lambda f: 6.706e-58 * f**(-7.5), 0])
+   		)
+   */
+   
+}
+
+
+
 } //end of the namespace
