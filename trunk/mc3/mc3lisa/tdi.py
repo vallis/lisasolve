@@ -197,7 +197,7 @@ class model(object):
             model.lisaL  = 1e9 / model.c
             model.lisaP  = 0.7
             model.lisaD  = 0.25
-        elif mymodel in ['mldc','mldc-nominal','lisareq','toy','newlpf','newdrs','lpf','wind','ax50']:
+        elif mymodel in ['mldc','mldc-nominal','lisareq','toy','newlpf','newdrs','reddrs','lpf','wind','ax50']:
             model.noisemodel = mymodel
         else:
             raise NotImplementedError(mymodel)
