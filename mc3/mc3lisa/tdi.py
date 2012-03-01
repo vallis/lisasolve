@@ -57,31 +57,45 @@ class TDIf(object):
         return len(self.Af)
     
     def __add__(self,other):
-        return TDIf(aet=(self.Af + other.Af,self.Ef + other.Ef,self.Tf + other.Tf))
+        ret = TDIf(aet=(self.Af + other.Af,self.Ef + other.Ef,self.Tf + other.Tf))
+        ret.Xf = self.Xf + other.Xf
+        return ret
     
     def __sub__(self,other):
-        return TDIf(aet=(self.Af - other.Af,self.Ef - other.Ef,self.Tf - other.Tf))
+        ret = TDIf(aet=(self.Af - other.Af,self.Ef - other.Ef,self.Tf - other.Tf))
+        ret.Xf = self.Xf - other.Xf
+        return ret
     
     def __mul__(self,other):
         if isinstance(other,TDIf):
-            return TDIf(aet=(self.Af*other.Af,self.Ef*other.Ef,self.Tf*other.Tf))
+            ret = TDIf(aet=(self.Af*other.Af,self.Ef*other.Ef,self.Tf*other.Tf))
+            ret.Xf = self.Xf * other.Xf
         else:
-            return TDIf(aet=(self.Af*other,self.Ef*other,self.Tf*other))
+            ret = TDIf(aet=(self.Af*other,self.Ef*other,self.Tf*other))
+            ret.Xf = self.Xf * other
+        
+        return ret
     
     def __rmul__(self,other):
-        return TDIf(aet=(self.Af*other,self.Ef*other,self.Tf*other))
+        ret = TDIf(aet=(self.Af*other,self.Ef*other,self.Tf*other))
+        ret.Xf = self.Xf * other
+        return ret
     
     def __div__(self,other):
         if isinstance(other,TDIf):
-            return TDIf(aet=(self.Af/other.Af,self.Ef/other.Ef,self.Tf/other.Tf))
+            ret = TDIf(aet=(self.Af/other.Af,self.Ef/other.Ef,self.Tf/other.Tf))
+            ret.Xf = self.Xf / other.Xf
         else:
-            return TDIf(aet=(self.Af/other,self.Ef/other,self.Tf/other))
+            ret = TDIf(aet=(self.Af/other,self.Ef/other,self.Tf/other))
+            ret.Xf = self.Xf / other
+        
+        return ret
     
     def __iadd__(self,other):
-        self.Af += other.Af; self.Ef += other.Ef; self.Tf += other.Tf
+        self.Af += other.Af; self.Ef += other.Ef; self.Tf += other.Tf; self.Xf += other.Xf
     
     def __isub__(self,other):
-        self.Af -= other.Af; self.Ef -= other.Ef; self.Tf -= other.Tf
+        self.Af -= other.Af; self.Ef -= other.Ef; self.Tf -= other.Tf; self.Xf += other.Xf
     
     def normsq(self,noisepsd = None,extranoise = [0,0,0]):
         if noisepsd == None:
@@ -108,6 +122,9 @@ class TDIf(object):
         return (4.0 / self.Af.df) * N.real( N.sum(N.conj(self.Af) * other.Af / self.Sae) +
                                             N.sum(N.conj(self.Ef) * other.Ef / self.Sae) +
                                             N.sum(N.conj(self.Tf) * other.Tf / self.St ) )
+                                            
+    def dotprodx(self,other):
+        return (4.0 / self.Xf.df) * N.real( N.sum(N.conj(self.Xf) * other.Xf / self.Sx) )
     
     def logL(self,other):
         return -0.5 * (4.0 / self.Af.df) * ( N.sum(N.abs(self.Af.rsub(other.Af))**2 / self.Sae) +
@@ -197,6 +214,13 @@ class model(object):
             model.lisaL  = 1e9 / model.c
             model.lisaP  = 0.7
             model.lisaD  = 0.25
+        elif mymodel == 'lagrange':
+            model.noisemodel = 'wind'
+            model.lisaL  = 21e9 / model.c
+        elif mymodel == 'lagrange-smallmirror':
+            model.noisemodel = 'wind'
+            model.lisaL  = 21e9 / model.c
+            model.lisaD  = 0.2
         elif mymodel in ['mldc','mldc-nominal','lisareq','toy','newlpf','newdrs','reddrs','lpf','wind','ax50']:
             model.noisemodel = mymodel
         else:
@@ -258,6 +282,9 @@ def lisanoises(f,noisemodel=None):
     elif noisemodel == 'wind':
         Spm = 1.76e-50 * f**-0.75 * f**(-2)
         Sop = 1.42319e-37 * (model.lisaL/model.defaultL)**2 * (1.0 + (f/0.002)**-4) * f**2
+    elif noisemodel == 'windnew':
+        Spm = 1.76e-50 / 12 * f**-0.75 * f**(-2)
+        Sop = 1.42319e-37 * (model.lisaL/model.defaultL)**2 * (model.defaultD/model.lisaD)**4 * (model.defaultP/model.lisaP) * (1.0 + (f/0.002)**-4) * f**2
     elif noisemodel == 'ax50':
         Spm = 50 * 2.53654e-48 * (1.0 + (f/1.0e-4)**-1) * (1.0 + (f/0.008)**4) * f**(-2)
         Sop = 1.42319e-37 * (model.lisaL/model.defaultL)**2 * (1.0 + (f/0.002)**-4) * f**2
@@ -293,7 +320,7 @@ class phinneybackground(object):
 def lisanoise(f,noisemodel=None,includewd=None):
     if noisemodel == None: noisemodel = model.noisemodel
     if includewd == None: includewd = model.lisaWD
-        
+     
     if noisemodel == 'cutler':
         # compare to Eq. (25) of Barack and Cutler Phys.Rev. D 70, 122002 (2004)
         # their Sh, defined by <n n> = 3/40 Sh, is 6.12e-51 f**-4,
@@ -326,6 +353,9 @@ def lisanoise(f,noisemodel=None,includewd=None):
         elif noisemodel == 'toy':
             Sa = 3e-15
             So = N.sqrt((1.6e-11)**2  * optscale + (1.2e-11)**2)
+        elif noisemodel == 'newtoy':
+            Sa = 3e-15
+            So = 2e-11
         elif noisemodel == 'newlpf':
             Sa = 5.3e-15 * (1.0 + (f/1.8e-4)**-1)
             So = N.sqrt((1.18e-11)**2 * optscale + (8.0e-12)**2)
@@ -337,6 +367,9 @@ def lisanoise(f,noisemodel=None,includewd=None):
             So = N.sqrt((1.18e-11)**2 * optscale + (8.0e-12)**2)
         elif noisemodel == 'wind':
             Sa = 2.5e-16 * f**-0.75
+            So = 18e-12 * optscale * N.sqrt(1 + (f/0.002)**-4)
+        elif noisemodel == 'windnew':
+            Sa = 2.5e-16 / 3.464 * f**-0.75     # with Curt's reduced model of noise (2 sqrt(3) in rms due to wind angle fluctuations)
             So = 18e-12 * optscale * N.sqrt(1 + (f/0.002)**-4)
         elif noisemodel == 'ax50':
             Sa = 50 * 3e-15 * N.sqrt(1.0 + (f/1.0e-4)**-1) * N.sqrt(1.0 + (f/0.008)**4)
