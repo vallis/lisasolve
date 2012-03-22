@@ -26,6 +26,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "Constants.hh"
 #include <vector>
 #include <complex>
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <iomanip>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
 
@@ -46,6 +50,8 @@ namespace LISAWP{
 		
 		/** Standard heliocentric LISA motion, armlength is a variable*/
       void EccentricLISAMotion(double kappa0, double lambda0, double t, double* &R, double** &p, double** &n);
+      
+      void EccentricLISAMotion2(double kappa0, double lambda0, double t, double* &R, double** &q, double** &n);
    	
    	// Not complete yet                         
       void GeocentricL345();
