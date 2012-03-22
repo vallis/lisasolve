@@ -183,6 +183,7 @@ void phenomwf2( double *amp, double *phase, double *f , int n ,
     /* dimensionless mass */
     m1=(1-(4.0*eta))/2.0;
     m2=(1+(4.0*eta))/2.0;
+   
 
     /* asymetry parameter */
     delta = sqrt(1.-4.*eta);

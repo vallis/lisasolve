@@ -328,7 +328,6 @@ void ComputeTDIfreq::ComputeTDIfreqXYZ_NumOrb(int sz, double thetaS, double phiS
     OrbitalMotion orbit(L, year);
     
     orbit.InitiateSplinInterpolation(szOrb, torb, x1, y1, z1, x2, y2, z2, x3, y3, z3); 
-     
   
     double tm, fr;
     double nU, nV;

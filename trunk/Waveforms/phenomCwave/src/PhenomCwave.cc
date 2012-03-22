@@ -110,7 +110,7 @@ int PhenomCwave::ComputeH22(BBHTemplate H, int n, double* &freq, std::complex<do
       H22 = new std::complex<double>[n];
    }
    
-   double* hreal;
+   /*double* hreal;
    double* himg;
    hreal  = new double[n];
    himg = new double[n];
@@ -130,7 +130,35 @@ int PhenomCwave::ComputeH22(BBHTemplate H, int n, double* &freq, std::complex<do
    
    delete [] hreal;
    delete [] himg;
+   */
+
+   double* amp;
+   double* phs;
+   amp  = new double[n];
+   phs = new double[n];
+   std::complex<double> img(0.0, 1.0);
    
+   for (int i=0; i<n; i++ )
+    {
+      amp[i] = 0.0;
+      phs[i] = 0.0;
+    }
+   
+   phenomwf2( amp , phs , freq , n , fMin , fMax , eta , chi , Mtot, H.dist);
+   double phase, sph, cph;
+
+   for (int i=0; i<n; i++){
+     phase = phs[i] + 2.*H.phi0;
+     cph = cos(phase);
+     sph = sin(phase);
+     H22[i] = amp[i] *(cph - img*sph);
+   }  
+   
+   delete [] amp;
+   delete [] phs;
+
+    
+
    return(n);
    
 }

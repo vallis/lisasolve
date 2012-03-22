@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define CVSHEADER "$Header: /afs/aeiw/cvsroot/waves/people/stas/LISAWP/base/src/IndexSet.cc,v 1.1 2007/09/18 21:50:41 stba Exp $" 
 */
 
+#include <cstdlib>
 #include "IndexSet.hh"
 #include "Macros.hh"
 
