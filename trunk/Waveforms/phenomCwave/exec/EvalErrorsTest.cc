@@ -179,7 +179,7 @@ int main(){
             gsl_vector_set(rhs, i, 1.0);         
       }   
       gsl_linalg_LU_solve(m, p, rhs, x);
-      info = gsl_linalg_LU_refine(m1, m, p, rhs, x, residual);
+      
       for (int j=0; j<dim; j++){
          IFisher(j, i) = gsl_vector_get(x, j); 
       }      
