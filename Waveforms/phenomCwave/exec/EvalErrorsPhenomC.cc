@@ -69,6 +69,7 @@ int main(int argc, char* argv[]){
     double df = 1.e-6;
     double year = 31457280.;
     double Tobs = 2.*year;
+    Tobs = 62506800.; // required by L1 (!) 
     
     std::string noise;
     
@@ -104,6 +105,7 @@ int main(int argc, char* argv[]){
      S_n = new double[n]; 
 
      bool galactic_bin = true;
+     galactic_bin = false; // needed for comparison with L1 config
      NoiseModels NM1(galactic_bin);
      double arm;
     
@@ -120,6 +122,11 @@ int main(int argc, char* argv[]){
      if (noise == "C2"){
         NM1.miniLISA_C2X(n, freq, S_n);
         std::cout << "using C2 config \n";
+        arm = 1.e9/LISAWP_C_SI;
+     }
+     if (noise == "C3"){
+        NM1.miniLISA_C3X(n, freq, S_n);
+        std::cout << "using C3 config \n";
         arm = 1.e9/LISAWP_C_SI;
      }
      if (noise == "C4"){
@@ -353,6 +360,7 @@ int main(int argc, char* argv[]){
              std::cout << "sigma chi: " << sqrt(IFisher(2,2)) << std::endl;
              std::cout << "sigma thetaS: " << sqrt(IFisher(3,3)) << std::endl;
              std::cout << "sigma phiS: " << sqrt(IFisher(4,4)) << std::endl;
+	     std::cout << "cross thetaS-phiS: " << IFisher(3,4) << "  " << IFisher(4,3) << std::endl;
              std::cout << "sigma Tc: " << sqrt(IFisher(5,5)) << std::endl;
              std::cout << "sigma psi: " << sqrt(IFisher(6,6)) << std::endl;
              std::cout << "sigma phi0: " << sqrt(IFisher(7,7)) << std::endl;
@@ -365,7 +373,7 @@ int main(int argc, char* argv[]){
               << H.chi << spr << H.M << spr\
               << SNR2 << spr << sqrt(IFisher(0,0))/H.M << spr << sqrt(IFisher(1,1)) << spr << sqrt(IFisher(2,2)) << spr \
               << sqrt(IFisher(3,3)) << spr << sqrt(IFisher(4,4)) << spr << sqrt(IFisher(5,5)) << spr << sqrt(IFisher(6,6)) << spr\
-              << sqrt(IFisher(7,7)) << spr << sqrt(IFisher(8,8)) << spr << sqrt(IFisher(9,9)) << std::endl;
+              << sqrt(IFisher(7,7)) << spr << sqrt(IFisher(8,8)) << spr << sqrt(IFisher(9,9)) << spr << IFisher(3,4) << std::endl;
          }// end of SNR-if
        }// end of the q-if
      // exit(0);

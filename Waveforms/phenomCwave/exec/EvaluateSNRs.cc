@@ -39,7 +39,7 @@ double ComputeInnerProd(int sz, double fmin, double fmax, std::complex<double>* 
 int main(){
  
    BBHTemplate H;
-   double arm = 1.e9;
+   double arm = 5.e9;
    double year = 31457280.;
    std::string spr = "    ";
    
@@ -84,13 +84,24 @@ int main(){
    Sn = new double[n]; 
    
    
-   //bool galactic_bin = true;
-   //NoiseModels NM1(galactic_bin);
-   //NM1.StandardLISA_X(n, freq, Sn);
+   bool galactic_bin = true;
+   galactic_bin = false;
+   NoiseModels NM1(galactic_bin);
+   NM1.StandardLISA_X(n, freq, Sn);
    //NM1.miniLISA_C1X(n, freq, Sn);
+   NM1.miniLISA_C1X(n, freq, Sn);
+
+   std::ofstream fout23("Data/NoiseTestC3.dat");
+   for (int i=0; i<n; i++){
+        fout23 << std::setprecision(15) << freq[i] << spr << Sn[i] << std::endl;
+   }
+   fout23.close();
+   exit(0);  
+
+
    // reading the noise:
    
-   std::string noiseFile = "Data/HL1_TDIX.dat";
+   /*std::string noiseFile = "Data/HL1_TDIX.dat";
    int nsz = 190652;
    std::ifstream finN(noiseFile.c_str());
    if(!finN){
@@ -119,7 +130,7 @@ int main(){
    delete [] ftmp;
    delete [] Stmp;
    
-   
+   */
    
    
    double x, ThetaQ, fmax1;
@@ -132,7 +143,7 @@ int main(){
    double SNR2;
    
    // reading the orbit
-   
+ /*  
    double t=0.0;
    double* x1;
    double* x2;
@@ -167,13 +178,13 @@ int main(){
             std::cout << "negative " << i << spr << torb[i] << spr << torb[i-1] << std::endl;
          }
    }
-   
+   */
    ComputeTDIfreq tdi(L, year);
    
    
    // reading the data file
    std::ifstream fin("Data/model_HOR_MCevents_ext.dat");
-   std::ofstream fout("Data/model_HOR_MCevents_SNR_L1.dat");
+  //std::ofstream fout("Data/model_HOR_MCevents_SNR_L1.dat");
    for (int i=0; i<nsources; i++){
        
       std::cout << std::endl;
