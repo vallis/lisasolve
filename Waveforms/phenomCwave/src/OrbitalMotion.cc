@@ -50,7 +50,7 @@ void OrbitalMotion::EccentricLISAMotion(double kappa0, double lambda0, double t,
 		
       double q[3][3];
 		
-		double ecc = 0.00964838; // hardcoded
+		//double ecc = 0.00964838; // hardcoded
 		
       double fct = 1./(2.0*sqrt(3.));
 		for(int i=0; i<3; i++){ // s/c index
@@ -63,6 +63,50 @@ void OrbitalMotion::EccentricLISAMotion(double kappa0, double lambda0, double t,
             p[i][0] = R[0] + L*q[i][0];
             p[i][1] = R[1] + L*q[i][1];
             p[i][2] = R[2] + L*q[i][2];
+                        
+   	}
+   	
+		
+	/*	for(int i=0; i<3; i++){
+			p[i][0] = R[0] + RAU*ecc*( sin(alpha)*cos(alpha)*sin(xi[i]) - \
+				(1.+ sin(alpha)*sin(alpha))*cos(xi[i])  );
+			p[i][1] = R[1] + RAU*ecc*( sin(alpha)*cos(alpha)*cos(xi[i]) - \
+				(1.+ cos(alpha)*cos(alpha))*sin(xi[i])  );
+		   p[i][2] = -sqrt(3.)*RAU*ecc*cos(alpha - xi[i]);
+		}*/
+		
+		for(int i=0; i<3; i++){
+			 n[0][i] = (q[1][i] - q[2][i]);
+		    n[1][i] = (q[2][i] - q[0][i]);
+		    n[2][i] = (q[0][i] - q[1][i]);
+		}
+    	   	   
+}
+
+void OrbitalMotion::EccentricLISAMotion2(double kappa0, double lambda0, double t, double* &R, double** &q, double** &n)
+{
+
+		double alpha = Omega*t + kappa0;
+		double xi[3]; // this is beta
+		xi[0] = lambda0;             //////////  MOVE THOSE CALCULATIONS OUT TO THE CONSTRUCTOR
+		xi[1] = lambda0 + 2.0*LISAWP_PI/3.0;
+		xi[2] = lambda0 + 4.0*LISAWP_PI/3.0;
+ 
+		
+		R[0] = RAU*cos(alpha);
+		R[1] = RAU*sin(alpha);
+		R[2] = 0;
+		
+		
+		//double ecc = 0.00964838; // hardcoded
+		
+      double fct = 1./(2.0*sqrt(3.));
+		for(int i=0; i<3; i++){ // s/c index
+   			q[i][0] = ( sin(alpha)*cos(alpha)*sin(xi[i]) - \
+   				(1.+ sin(alpha)*sin(alpha))*cos(xi[i])  )*fct;
+   			q[i][1] = ( sin(alpha)*cos(alpha)*cos(xi[i]) - \
+   				(1.+ cos(alpha)*cos(alpha))*sin(xi[i])  )*fct;
+   		   q[i][2] = -0.5*cos(alpha - xi[i]);
                         
    	}
    	
@@ -178,8 +222,6 @@ void OrbitalMotion::NumericalData( double t, double** &p, double** &n, double &L
     //X[i] = -4.*img*sin(omL)*(-y1_32*ex2 - y231*ex1 + y123*ex2 + y3_21*ex1);
     // so it is communication between 1<->2 and 1<->3: x1, y1, z1 should be a mother
     
-   
-   
    p[0][0] = gsl_spline_eval (spline1, t, acc1)/LISAWP_C_SI;
    
    p[0][1] = gsl_spline_eval (spline2, t, acc2)/LISAWP_C_SI;  
