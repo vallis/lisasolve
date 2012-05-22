@@ -21,4 +21,10 @@
   * We then call the !MultiNest executable using `pymultinest.nested.nestRun`. Parameters are explained in the !MultiNest `readme.txt` and in `example_eggbox.py`. Remember to have an empty directory `chains` on hand.
   * With Open MPI, the parallel call would be something like `mpiexec -np 4 python example_eggbox.py`.
 
-Michele, 3/28/2011
+== Compiling on Ubuntu 12 ==
+
+  * On a fresh install (+ updates), install gfortran (sudo apt-get install gfortran), mpich2, subversion, python-dev, python-numpy, liblapack. Download lisasolve as described in http://code.google.com/p/lisasolve/source/checkout.
+  * Need to add -fPIC to the C and C++ compiler flags in the Makefile.
+  * Need to change the location of install for pymultinest.so (already done in the latest revision)
+
+Michele, 5/22/2012
