@@ -1,5 +1,5 @@
 # === OS X configuration, using GCC compilers ===
-# == using gcc and gfortran ==
+# == using gcc and gfortran; on Linux, probably need to add -fPIC to CC and CXX ==
 CC  = mpicc
 CXX = mpicxx
 FC  = mpif90 -DMPI
@@ -17,7 +17,7 @@ LINKLIB  = --link-lapack_opt
 # === Python install location ===
 PYTHON_INCLUDE = $(shell python -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('CONFINCLUDEPY')")
 PYTHON_LIBNAME = python$(shell python -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('VERSION')")
-PYTHON_LIBDIR  = $(VIRTUAL_ENV)/lib/$(PYTHON_LIBNAME)/site-packages
+PYTHON_LIBDIR  = $(shell python -c "import distutils.sysconfig; print distutils.sysconfig.get_python_lib()")
 
 # === multinest files ===
 LIBOBJ = utils.o utils1.o kmeans_clstr.o xmeans_clstr.o posterior.o priors.o nested.o
