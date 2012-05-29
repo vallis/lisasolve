@@ -21,10 +21,13 @@
   * We then call the !MultiNest executable using `pymultinest.nested.nestRun`. Parameters are explained in the !MultiNest `readme.txt` and in `example_eggbox.py`. Remember to have an empty directory `chains` on hand.
   * With Open MPI, the parallel call would be something like `mpiexec -np 4 python example_eggbox.py`.
 
+== Compilation problems ==
+
+  * If the library complains about MPI libraries upon `import`ing, f2py may be doing the final library-compilation step with the regular Fortran compiler (e.g., gfortran) instead of the MPI version. One way to fix this is to modify the f2py line in the Makefile, by adding the linking directives that you can get from "mpif90 -link-info". For instance, on my Linux system it would be `-L/usr/lib -lmpichf90 -lmpichf90 -lmpich -lopa -lmpl -lrt -lcr -lpthread`.
+
 == Compiling on Ubuntu 11/12 ==
 
   * On a fresh install (+ updates), install gfortran (sudo apt-get install gfortran), mpich2, subversion, python-dev, python-numpy, liblapack (liblapack-dev on Ubuntu 12). Download lisasolve as described in http://code.google.com/p/lisasolve/source/checkout.
-  * Need to add -fPIC to the C and C++ compiler flags in the Makefile.
-  * Need to change the location of install for pymultinest.so (already done in the latest revision)
-
+  * May need to add -fPIC to the C and C++ compiler flags in the Makefile.
+ 
 Michele, 5/22/2012
