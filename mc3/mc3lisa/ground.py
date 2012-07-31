@@ -61,7 +61,7 @@ def FpcD(detector,skyposition):
 
 
 class networkf(object):
-    def __init__(self,signal=None,dets=None,data=None,deriv=None):
+    def __init__(self,signal=None,dets=None,data=None,deriv=None,fisher=False):
         if data:
             self.data, self.dets = data, data.keys()
         elif signal and dets:
@@ -71,9 +71,9 @@ class networkf(object):
             skyposition = (signal.state.theta, signal.state.phi, signal.state.psi)
             
             if deriv:
-                hp, hc = signal.hpcderiv(deriv)
+                hp, hc = signal.hpcderiv(deriv,fisher=fisher)
             else:
-                hp, hc = signal.hpc()
+                hp, hc = signal.hpc(fisher=fisher)
             
             f = signal.f
             
