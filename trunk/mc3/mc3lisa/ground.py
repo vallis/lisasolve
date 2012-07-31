@@ -40,7 +40,7 @@ speedoflight = 299792458  # m/s
 # returns F+, Fx and delays
 def FpcD(detector,skyposition):    
     theta, phi, psi = skyposition
-        
+    
     ex = N.matrix([ math.sin(phi) * math.cos(psi) - math.sin(psi) * math.cos(phi) * math.cos(theta),
                    -math.cos(phi) * math.cos(psi) - math.sin(psi) * math.sin(phi) * math.cos(theta),
                     math.sin(psi) * math.sin(theta)])
@@ -84,7 +84,8 @@ class networkf(object):
                 self.data[det] = N.exp(2*math.pi*-1j*f*D) * (Fp * hp + Fc * hc) * hp.df     # note that we store h(f_i) * df
                                                                                             # (same as for Galactic binaries)
         self._Sh = None
-
+    
+    
     def __add__(self,other):
         # in python 2.7, can do {k: v for (k,v) in ...}
         return networkf(data=dict((det,self.data[det] + other.data[det]) for det in self.dets))
@@ -102,10 +103,12 @@ class networkf(object):
     def __div__(self,other):
         return networkf(data=dict((det,self.data[det]/other) for det in self.dets))
     
+    
     def Sh(self,det):
         if self._Sh is None:
             self._Sh = dict((det,noisepsd(self.data[det])) for det in self.dets)
         return self._Sh[det]
+    
     
     def normsq(self):
         norm = 4.0 / self.data[self.dets[0]].df
