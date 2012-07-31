@@ -263,7 +263,7 @@ class fbbh(object):
         return timing
     
     
-    def hpc(self):
+    def hpc(self,fisher=False):
         inc = self.state.inc
         
         # checked against Eq. (5.274) of Maggiore        
@@ -271,14 +271,17 @@ class fbbh(object):
         # add (2 pi f tc) to phasing [or -1j * (2 pi f tc) to exponent] for time of coalescence
         # the sign of the exponential is consistent with numpy's fft, h(f) = int exp(-2 pi i f t) h(t) dt
         # per Maggiore's 5.275, add pi/2 to hp phasing to get hc
-        hcp = self.amplitude(self.f) * N.exp(-1j * self.phasing(self.f))        
+        if fisher:
+            hcp = self.amplitude(self.f)
+        else:
+            hcp = self.amplitude(self.f) * N.exp(-1j * self.phasing(self.f))
         
         hp = FrequencyArray.FrequencyArray(ap * hcp,      kmin=self.kmin,df=self.df)
         hc = FrequencyArray.FrequencyArray(ac * -1j * hcp,kmin=self.kmin,df=self.df)
         
         return hp,hc
     
-    def hpcderiv(self,par):
+    def hpcderiv(self,par,fisher=False):
         if par not in ['Mc','eta','phi0','t0','d','cosi','inc','b','beta']:
             raise NotImplementedError
         
@@ -394,7 +397,10 @@ class fbbh(object):
         
         amp = self.amplitude(self.f)
         
-        hcp = (amp * dphasing + amp * damplitude) * N.exp(-1j * self.phasing(self.f))
+        if fisher:
+            hcp = (amp * dphasing + amp * damplitude)
+        else:
+            hcp = (amp * dphasing + amp * damplitude) * N.exp(-1j * self.phasing(self.f))
         
         hp = FrequencyArray.FrequencyArray(ap * hcp,      kmin=self.kmin,df=self.df)
         hc = FrequencyArray.FrequencyArray(ac * -1j * hcp,kmin=self.kmin,df=self.df)
