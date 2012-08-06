@@ -132,7 +132,7 @@ class MemoFunc(object):
     
 
 class State(object):
-    def __init__(self,init={}):
+    def __init__(self,init={},**kwargs):
         # initialize state from a dictionary or sequence (using the order in self.parameters)
         # will leave attributes undefined if not given, in which case defaults will apply
         
@@ -145,7 +145,10 @@ class State(object):
             for par,val in zip(self.parameters,init):
                 setattr(self,str(par),val)              # TO DO: renormalization of parameters?
                                                         #        currently done in proposal
+        
+        self.__dict__.update(kwargs)
     
+    # TO DO: does not copy all!
     def copy(self):
         return self.__class__(self.parlist())
     
@@ -182,6 +185,14 @@ def Model(name,pars,defs={},**kwargs):
     
     for par,val in itertools.chain(defs.items(),kwargs.items()):
         namespace[par] = MemoFunc(par,val) if isinstance(val,collections.Callable) else val
+    
+    # if we don't worry about the caching, could do
+    # import types
+    # namespace[par] = types.MethodType(val,None,State)
+    # although it may be a problem that we're binding to the base class
+    # maybe we should add these _after_ creating the new class below
+    # but not really, because we really want to make a property...
+    # so we should just use property(val)?
     
     return type(name,(State,),namespace)
     
