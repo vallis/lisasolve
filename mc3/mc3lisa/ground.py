@@ -88,7 +88,13 @@ class networkf(object):
     
     def __add__(self,other):
         # in python 2.7, can do {k: v for (k,v) in ...}
+        if not other:
+            return self
+        
         return networkf(data=dict((det,self.data[det] + other.data[det]) for det in self.dets))
+    
+    def __radd__(self,other):
+        return self.__add__(other)
     
     def __sub__(self,other):
         # in python 2.7, can do {k: v for (k,v) in ...}
@@ -98,10 +104,13 @@ class networkf(object):
         return networkf(data=dict((det,self.data[det]*other) for det in self.dets))
     
     def __rmul__(self,other):
-        return networkf(data=dict((det,self.data[det]*other) for det in self.dets))
+        return self.__mul__(other)
     
     def __div__(self,other):
         return networkf(data=dict((det,self.data[det]/other) for det in self.dets))
+    
+    def __truediv__(self,other):
+        return self.__div__(other)
     
     
     def Sh(self,det):
@@ -109,6 +118,9 @@ class networkf(object):
             self._Sh = dict((det,noisepsd(self.data[det])) for det in self.dets)
         return self._Sh[det]
     
+    
+    def SNR(self):
+        return math.sqrt(self.normsq())
     
     def normsq(self):
         norm = 4.0 / self.data[self.dets[0]].df
