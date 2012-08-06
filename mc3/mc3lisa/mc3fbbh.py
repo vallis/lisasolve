@@ -48,8 +48,14 @@ class memoize(object):
 
 
 class fbbh(object):
-    def __init__(self,state,minf=1e-5,deltat=None,samples=None,fiducialf=None,debug=False):
+    def __init__(self,state,minf=None,deltat=None,samples=None,fiducialf=None,debug=False):
         self.state, self.debug = state, debug
+        
+        # check hardwired values, change minf default to 10
+        if minf is None:        minf = getattr(state,'minf',10)
+        if deltat is None:      deltat = getattr(state,'deltat',None)
+        if samples is None:     samples = getattr(state,'samples',None)
+        if fiducialf is None:   fiducialf = getattr(state,'fiducialf',None)
         
         self.deltat          = self.checknyquist(deltat)
         self.minf, self.maxt = self.checkduration(minf)        
@@ -266,7 +272,7 @@ class fbbh(object):
     def hpc(self,fisher=False):
         inc = self.state.inc
         
-        # checked against Eq. (5.274) of Maggiore        
+        # checked against Eq. (5.274) of Maggiore
         ap, ac = 0.5 * (1 + math.cos(inc)**2), math.cos(inc)
         # add (2 pi f tc) to phasing [or -1j * (2 pi f tc) to exponent] for time of coalescence
         # the sign of the exponential is consistent with numpy's fft, h(f) = int exp(-2 pi i f t) h(t) dt
@@ -386,6 +392,7 @@ class fbbh(object):
                 dphasing -= dphasing[self.fidk]
             
             damplitude = 0
+        
         if par == 'cosi':
             ap, ac = math.cos(inc), 1
             dphasing, damplitude = 0, 1
