@@ -180,7 +180,7 @@ class fbbh(object):
             return self.state.fend
         except AttributeError:
             Mc, eta = self.state.Mc, self.state.eta
-            M = Mc * eta**(-3/5)            
+            M = Mc * eta**(-3/5)
             return 4400 / M                 # default to Schwarzschild
     
     
